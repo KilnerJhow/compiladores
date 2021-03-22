@@ -1,0 +1,20 @@
+python3 antlr4-python3-runtime-4.7.2/src/main.py
+Variable definition
+Variable name and type: int a
+Variable name and type: int b
+Variable name and type: int c
+Variable name and type: int d
+Token line:  2 token columns: 4 var name a
+Visitando expression
+Payload Floating:  1.0
+Expr return: float
+WARNING: possible loss of information assigning float expression to int variable a in line 2 and column 4
+Token line:  2 token columns: 10 var name b
+Visitando expression
+Payload Integer:  0
+Expr return: int
+Token line:  2 token columns: 14 var name c
+Visitando expression
+Payload Floating:  1.8
+Expr return: float
+WARNING: possible loss of information assigning float expression to int variable c in line 2 and column 14

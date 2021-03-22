@@ -1,0 +1,294 @@
+local_ids_defined[nome-da-variavel] = {'type': tyype}
+
+global_ids_defined[nome-da-funcao] = {'type': tyype, 'params': params}
+global_ids_defined[nome-da-variavel] = {'type': tyype}
+
+funcao_pai = None
+
+int = FloatExpression
+
+int a;
+
+a = 2.0;
+
+variable_definition:
+    
+    Lógica:
+        
+        if(array):
+            nome do array = visita array
+            para cada item do array_literal:
+                if(tipo do retorno do array_literal = float e tipo do array = int):
+                    gera WARNING de possível perda de informação
+                else if(tipo do retorno do array_literal = string e tipo do array = (int ou float)):
+                    gera erro de tipo incompatível
+                else if(tipo do retorno do array_literal = (float ou int) e tipo do array = string):
+                    gera erro de tipo incompatível
+        else:
+            if(retorno do expression = void):
+                gera erro de tipo vazio
+            else if(retorno de expression != do tipo-da-variavel)
+                
+                if(tipo-da-variavel = int e retorno da expressao = float)
+                    gera WARNING de possível perda de informação
+                else if (tipo-da-variavel = (int ou float) e retorno da expressao = string)
+                    gera erro de tipos incompatíveis
+                else if (tipo-da-variavel = string e retorno da expressao = (int ou float))
+                    gera erro de tipos incompatíveis
+
+    Retorna: None
+
+
+variable_assignment:
+
+    Lógica:
+
+        if(array):
+            nome do array = visita array
+
+        if(nome da variável não existe em local_ids_defined e nem global_ids_defined):
+            gera um erro
+
+        else:
+            if(retorno do expression = void):
+                gera erro de tipo vazio
+            else if(retorno de expression for diferente do tipo-da-variavel)
+                
+                if(tipo-da-variavel = int e retorno da expressao = float)
+                    gera WARNING de possível perda de informação
+                else if (tipo-da-variavel = (int ou float) e retorno da expressao = string)
+                    gera erro de tipos incompatíveis
+                else if (tipo-da-variavel = string e retorno da expressao = (int ou float))
+                    gera erro de tipos incompatíveis
+
+    Retorna: None
+
+statement:
+
+    Lógica:
+
+        if(for do tipo variable_definition):
+            visita a função variable_definition
+        
+        else if(for do tipo variable_assignment):
+            visita a função variable_assignment
+        
+        else if(for do tipo expression):
+            visita expression
+
+        else if(for do tipo loop for):
+            visita for_loop
+
+        else if(for do tipo if_statement):
+            visita if_statement
+        
+        else if(for do tipo body):
+            visita body
+
+        else if(for do tipo retorno):
+            valor da expression = visita a expression
+            if(a funcao tem retorno tipo void e expression != None):
+                gera erro
+            else:
+                if(tipo-da-funcao = int e retorno expression = float)
+                    gera WARNING
+                else if(tipo-da-funcao = (int ou float) e retorno expression = string)
+                    gera erro
+                else if(tipo-da-funcao = string e retorno expression = (int ou float))
+                    gera erro
+
+
+    Retorna: ?
+
+
+if_statement:
+    
+    Lógica: 
+        if(visita expression = void):
+            gera erro de tipo vazio
+
+        if(body):
+            visita body
+        else if(statement):
+            visita statement
+        
+        if(else_statement):
+            visita else_statement
+
+else_statement:
+
+    Lógica:
+
+        if(body):
+            visita body
+        else if(statement):
+            visita statement
+
+
+for_loop:
+
+    visita for_initializer;
+    visita for_condition;
+    visita for_step
+
+    if(body):
+            visita body
+    else if(statement):
+        visita statement
+
+
+for_initializer:
+
+    if(variable_assignment)
+        visita variable_assignment
+    else if(variable_definition)
+        visita variable_definition
+
+
+for_condition:
+
+    if(expression)
+        visita expression
+
+
+for_step:
+
+    if(variable_assignment):
+        visita variable_assignment
+
+expression:
+
+    Lógica:
+
+        if(intenger):
+            retorna visita integer
+        else if(floating):
+            retorna visita floating
+        else if(string):
+            retorna visita string
+        else if(identifier):
+            retorna visita identifier  
+        else if (array):
+            nome do array = visita array
+            retorna acessa o nome do array em local_ids_defined ou global_ids_defined e pega o tipo
+        
+        else if(expression(1) OP expression(2)):         
+            tipo 1 = visita expression(1)
+            tipo 2 = visita expression(2)
+            
+            if((tipo 1 = (int ou float) e tipo 2 = string) ou (tipo 2 = (int ou float) e tipo 1 = string)):
+                gera um erro de tipo incompatíveis
+            else if((tipo 1 = float e tipo 2 = int) ou (tipo 1 = int e tipo 2 = float)):
+                retorna tipo float
+            else if((tipo 1 ou tipo 2) = void ):
+                gera erro de tipo vazio
+            
+        else if(OP expression):
+            tipo = visita expression
+            if(tipo = void):
+                gera erro de tipo vazio
+            else:
+                retorna tipo
+        
+        else if (function_call):
+
+            retorna visita function_call
+        
+        else if ( '(' + expression + ')'):
+
+            retorna visita expression
+
+
+
+    Retorna: (Tipo ou None)
+
+
+function_definition:
+
+    Lógica:
+        params = visita arguments
+        salvar o tipo, nome da funcao e os params em global_ids_defined
+        funcao_pai = nome da funcao
+        local_ids_defined = {}
+        visitar o body
+        funcao_pai = None
+
+    Retorna: None
+
+arguments:
+
+    Lógica:
+
+        params = salvar o tipo e o nome de cada parametro
+        retorna params
+
+    Retorna: Parametros
+
+function_call:
+
+    Lógica:
+        
+        if(nome da funcao nao existe em global_ids_defined):
+            gera um erro de funcao inexistente
+        else:
+            if(numero de parametros da chamada = número de parametros da funcao):
+                if(tipo dos parametros da chamada != tipo dos parametros da funcao):
+                    gera erro
+            else:
+                gera erro
+        
+        retorna tipo da funcao
+
+
+
+    Retorna: ?
+
+
+body:
+    visita statements
+
+    Retorna: None
+
+
+integer:
+
+    Retorna: tipo int
+
+floating:
+
+    Retorna: tipo float
+
+string:
+
+    Retorna: tipo string
+
+identifer:
+
+    Lógica:
+
+        if(se existir local_ids_defined[identifer] ):
+            retorna o tipo de local_ids_defined[identifer] 
+        else if (se existir global_ids_defined[identifer]):
+            retorna o tipo de global_ids_defined[identifer] 
+        else:
+            gera erro informando que a variável não existe
+
+
+    Retorna: Tipo
+
+array:
+
+    Lógica:
+
+        if(retorno da expression for diferente de int):
+            gera um erro de tipo incompatível
+
+        retorna identifier
+
+    Retorna: identifier
+
+
+array_literal:
+
+    Lógica:
+        retorna visita expression
