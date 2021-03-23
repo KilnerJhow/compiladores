@@ -264,7 +264,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         # print("Visitando variable assignment")
         name = ''
-        index = ''
+        index = None
         token = ''
         value = None
         if(ctx.array()):
@@ -272,10 +272,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             ret_arr = self.visit(ctx.array())
             name = ret_arr.get('name')
             index = ret_arr.get('value')
+            # print("Index return array:", index)
             ret_err = ret_arr.get('ret_err')
             # print("No assignment nome", name, "valor", index)
             token = ctx.array().identifier().IDENTIFIER().getPayload()
-            if(ret_arr == Type.ERROR):
+            if(ret_err == Type.ERROR):
                 return
         else:
             name = ctx.identifier().getText()
@@ -283,13 +284,19 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         
         var_info = self.ids_defined.get(name)
-        # print("Nome da var:", name, "var info", var_info)
+        # print("Nome da var:'"+name+"'var info", var_info)
         if(var_info == None):
             token = ctx.identifier().IDENTIFIER().getPayload()
             print('ERROR: undefined variable \''+ name + '\' in line ' + str(token.line) +  ' and column ' + str(token.column))
         else:
             var_type = var_info.get('tyype')
             var_value = var_info.get('value')
+            # print("Valor da variavel: ", var_value)
+            if(var_value != None):
+                if(index != None and index > var_value):
+                    print('ERROR: index out of bounds in variable \''+name+'\' in line '+str(token.line)+ ' and column '+ str(token.column))
+            
+            
             if(ctx.OP.text == '++'):
                 value = var_value + 1
             elif(ctx.OP.text == '--'):
@@ -299,9 +306,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 ret_type = ''
                 ret_value = 0
 
+            
                 if(ret_expr != None):
                     ret_type = ret_expr.get('tyype')
                     ret_value = ret_expr.get('value')
+            
                 # print("Inside variable assignment, name '", name, "' type", var_type, 'ret type', ret_expr)
                 if(ret_type != Type.ERROR):
                     if(ret_type == Type.VOID):
@@ -464,6 +473,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         ret_expr = self.visit(ctx.expression())
         ret_type = ret_expr.get('tyype')
         index_value = ret_expr.get('value')
+        if(ret_expr.get('var')):
+            index_value = None
         tyype = ''
 
         if(ret_expr == Type.ERROR):
@@ -473,12 +484,13 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             return {'name': name, 'value': None, 'ret_err': Type.VOID}
         else:
             # print("Retorno do tipo do array:", ret_type, "valor:", index_value)
-            if(index_value < 0):
-                print('ERROR: array expression must be an positive integer, but it is ' + str(index_value) + ' in line '+ str(token.line)+' and column ' + str(token.column))
-                tyype = Type.ERROR
-            elif(ret_type != Type.INT):
-                print('ERROR: array expression must be an integer, but it is ' + ret_type + ' in line '+ str(token.line)+' and column ' + str(token.column))
-                tyype = Type.ERROR
+            if(index_value != None):
+                if(index_value < 0):
+                    print('ERROR: array expression must be an positive integer, but it is ' + str(index_value) + ' in line '+ str(token.line)+' and column ' + str(token.column))
+                    tyype = Type.ERROR
+                elif(ret_type != Type.INT):
+                    print('ERROR: array expression must be an integer, but it is ' + ret_type + ' in line '+ str(token.line)+' and column ' + str(token.column))
+                    tyype = Type.ERROR
             
             return {'name': name, 'value': index_value, 'ret_err': tyype}
 
@@ -556,7 +568,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         ret_err = Type.ERROR
                     # erro
             # print("Retornando da chamada de funcao:", {'tyype': f_type, 'value': value})
-            return {'tyype': f_type, 'value': value, 'ret_err': ret_err}
+            return {'tyype': f_type, 'value': None, 'ret_err': ret_err}
             # checando os parametros
 
 
@@ -608,8 +620,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         if(var_info == None):
             token = ctx.IDENTIFIER().getPayload()
             print('ERROR: undefined variable \''+ ctx.IDENTIFIER().getText() + '\' in line ' + str(token.line) +' and column ' +str(token.column))
-            return {'tyype': Type.ERROR, 'value': None}
+            return {'tyype': Type.ERROR, 'value': None, 'var': False}
         else:
             # print("Retornando identifier var info", var_info)
-            return var_info
+            return {'tyype': var_info.get('tyype'), 'value': var_info.get('value'), 'var':True}
 
