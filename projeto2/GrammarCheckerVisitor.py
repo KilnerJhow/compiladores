@@ -165,11 +165,13 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         # print("Variable definition")
         tyype = ctx.tyype().getText()
 
-
+        name = ''
         array_name = ''
         ret_arr_literal = []
         if(ctx.array(0) != None):
             for i in range(len(ctx.array())):
+                name = ctx.array(i).identifier().getText()
+                self.ids_defined[name] = {'tyype': tyype, 'value': None}
                 ret_arr = self.visit(ctx.array(i))
                 token = ctx.array(i).identifier().IDENTIFIER().getPayload()
                 array_name = ret_arr.get('name')
@@ -232,12 +234,13 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         # print("Continuando após o erro")
                         return
                     else:
-                        if(value != None):
-                            if(tyype == Type.INT and not isinstance(value, str)):
-                                # print("Salvando var tipo int")
-                                self.ids_defined[name] = {'tyype': tyype, 'value': floor(value)}
-                            else:
-                                self.ids_defined[name] = {'tyype': tyype, 'value': value}
+                        # if(value != None):
+                        if(tyype == Type.INT and not isinstance(value, str) and value != None):
+                            # print("Salvando var tipo int")
+                            self.ids_defined[name] = {'tyype': tyype, 'value': floor(value)}
+                        else:
+                            # print("Salvando var tipo float ou string")
+                            self.ids_defined[name] = {'tyype': tyype, 'value': value}
 
                             # print("Expr return:", ret_expr)
 
@@ -245,17 +248,17 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                             #     # print("ERRO: tipo vazio")
                             #     return
 
-                            if(ret_type != tyype):
+                        if(ret_type != tyype):
 
-                                if(tyype == Type.INT and ret_type == Type.FLOAT):
-                                    print('WARNING: possible loss of information assigning float expression to int variable \''+ str(ctx.identifier(i).getText())+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
-                                elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
-                                    print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
-                                # elif(tyype == Type.STRING and ret_expr == (Type.INT or Type.FLOAT)):
-                                #     print('ERROR: trying to assign \''+ ret_expr +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
+                            if(tyype == Type.INT and ret_type == Type.FLOAT):
+                                print('WARNING: possible loss of information assigning float expression to int variable \''+ str(ctx.identifier(i).getText())+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
+                            elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
+                                print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
+                            # elif(tyype == Type.STRING and ret_expr == (Type.INT or Type.FLOAT)):
+                            #     print('ERROR: trying to assign \''+ ret_expr +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                 else:
                     self.ids_defined[name] = {'tyype': tyype, 'value': None}
-        # print("Info do", name, "apos save:",  self.ids_defined.get(name))
+        # print("Info do '"+ name +"' apos save:",  self.ids_defined.get(name))
 
     # Visit a parse tree produced by GrammarParser#variable_assignment.
     def visitVariable_assignment(self, ctx:GrammarParser.Variable_assignmentContext):
@@ -362,10 +365,12 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         elif(ctx.array()):
             ret_arr = self.visit(ctx.array())
             arr = self.ids_defined.get(ret_arr.get('name'))
-            if(arr == None):
-                token = ctx.array().identifier().IDENTIFIER().getPayload()
-                print('ERROR: undefined array \''+ctx.array().identifier().getText()+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
-                return {'tyype': Type.ERROR, 'value': 0}
+            
+            # if(arr == None):
+            if(ret_arr.get('ret_err') == Type.ERROR or arr == None):
+                # token = ctx.array().identifier().IDENTIFIER().getPayload()
+                # print('ERROR: undefined array \''+ctx.array().identifier().getText()+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
+                return {'tyype': Type.ERROR, 'value': None}
             else:
                 return {'tyype': arr.get('tyype'), 'value': arr.get('value')}
 
@@ -381,6 +386,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             ret_expr2 = ''
             value_expr1 = 0
             value_expr2 = 0
+
             if(ret_info_expr1 != None):
                 ret_expr1 = ret_info_expr1.get('tyype')
                 value_expr1 = ret_info_expr1.get('value')
@@ -398,6 +404,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             # if(ctx.OP.type == '+'):
                 # print("Operador mais")
 
+
             if((ret_expr1 == (Type.FLOAT or Type.INT) and ret_expr2 == Type.STRING) and (ret_expr1 == Type.STRING  and ret_expr2 == (Type.FLOAT or Type.INT))):
                 # print("ERRO: tipos incompativeis")
                 return {'tyype': None,'value': Type.ERROR}
@@ -406,11 +413,14 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     ret_tyype = Type.FLOAT
                 elif(op_type == '+' or op_type == '-'):
                     ret_tyype = Type.FLOAT
-                
             elif((ret_expr1 == None) or (ret_expr2 == None)):
                 # print("ERRO: tipo vazio ou variavel indefinida")
-                return {'tyype': Type.ERROR,'value': 0}
-            
+                return {'tyype': Type.ERROR,'value': None}
+            elif(ret_expr1 == Type.VOID or ret_expr2 == Type.VOID):
+                # token = ctx.OP.getPayload()
+                # print(ctx.OP.column)
+                print("ERROR: binary operator '"+op_type+ "' used on type void in line "+str(ctx.OP.line)+" and column " +str(ctx.OP.column))
+                return {'tyype': Type.ERROR,'value': None}
             
             if(value_expr1 == None or value_expr2 == None):
                 return {'tyype': ret_tyype, 'value': None}
@@ -476,6 +486,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         if(ret_expr.get('var')):
             index_value = None
         tyype = ''
+
+        if(self.ids_defined.get(name) == None):
+            print('ERROR: undefined array \''+name+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
+            tyype = Type.ERROR
 
         if(ret_expr == Type.ERROR):
             return {'name': name, 'value': None, 'ret_err': Type.ERROR}
