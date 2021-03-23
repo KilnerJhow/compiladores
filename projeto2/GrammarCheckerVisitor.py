@@ -323,7 +323,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     #     print("ERRO: tipos incompativeis")
                     else:
                         # print("Value do ret value", name, "=", ret_value, "na linha", token.line)
-                        if(ret_value != None):
+                        if(ret_value != None and var_value != None):
                             if(ctx.OP.text == '='):
                                 value = ret_value
                             elif(ctx.OP.text == '-='):
