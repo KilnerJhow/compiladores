@@ -61,7 +61,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         name = ctx.identifier().getText()
         params = self.visit(ctx.arguments())
 
-        print("Inside function:", name, "salvando parametros: ",tyype, params)
+        # print("Inside function:", name, "salvando parametros: ",tyype, params)
         self.ids_defined[name] = {'tyype': tyype, 'params': params}
         self.inside_what_function = name
         self.visit(ctx.body())
@@ -80,44 +80,42 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         #TODO: implementar if_statement, for_loop, body,
 
-        print(ctx.RETURN())
+        # print(ctx.RETURN())
 
         if(ctx.variable_definition()):
-            print("Statement variable definition")
+            # print("Statement variable definition")
             self.visit(ctx.variable_definition())
         elif(ctx.variable_assignment()):
-            print("Statement variable assignment")
+            # print("Statement variable assignment")
             self.visit(ctx.variable_assignment())
         elif(ctx.expression() and not ctx.RETURN()):
-            print("Statement expr")
+            # print("Statement expr")
             self.visit(ctx.expression())
         elif(ctx.RETURN()):
             ret_expr = self.visit(ctx.expression())
-            ret_type = ret_expr.get('tyype')
-            print("Statement ret", ret_expr)
+            ret_type = ''
+            if(ret_expr != None):
+                ret_type = ret_expr.get('tyype')
+            # print("Statement ret", ret_expr)
 
             token = ctx.RETURN().getPayload()
 
             f_info = self.ids_defined.get(self.inside_what_function)
             f_type = f_info.get('tyype')
 
+
             if(ret_type != f_type):
 
-                if(ret_type == Type.INT and f_type == Type.VOID):
+                if(ret_type in [Type.STRING, Type.INT, Type.FLOAT] and f_type == Type.VOID):
                     print('ERROR: trying to return a non void expression from void function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
-                elif(ret_type == Type.FLOAT and f_type == Type.VOID):
-                    print('ERROR: trying to return a non void expression from void function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
-                elif(ret_type == Type.STRING and f_type == Type.VOID):
-                    print('ERROR: trying to return a non void expression from void function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
-                elif(ret_type == Type.FLOAT and f_type == Type.INT):
+                if(ret_type == Type.FLOAT and f_type == Type.INT):
                     print('WARNING: possible loss of information returning float expression from int function \''+self.inside_what_function+'\' in line '+str(token.line)+ ' and '+str(token.column))
-                elif(ret_type == Type.STRING and f_type == Type.INT):
+                if(ret_type == Type.STRING and f_type in [Type.INT, Type.FLOAT]):
                     print('ERROR: trying to return a string expression from int function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
-                elif(ret_type == Type.STRING and f_type == Type.FLOAT):
-                    print('ERROR: trying to return a string expression from float function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
+                if(ret_type == Type.VOID and f_type in [Type.STRING, Type.INT, Type.FLOAT]):
+                    print('ERROR: trying to return void expression from function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column ' +str(token.column))
         elif(ctx.for_loop()):
             self.visit(ctx.for_loop())
-        
         elif(ctx.if_statement):
             self.visit(ctx.if_statement())
         
@@ -140,32 +138,26 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by GrammarParser#for_loop.
     def visitFor_loop(self, ctx:GrammarParser.For_loopContext):
-        print("Dentro do for loop")
+        # print("Dentro do for loop")
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by GrammarParser#for_initializer.
     def visitFor_initializer(self, ctx:GrammarParser.For_initializerContext):
-        print("Dentro do for initializer")
-        if(ctx.variable_definition()):
-            return self.visit(ctx.variable_definition())
-        elif(ctx.variable_assignment()):
-            return self.visit(ctx.variable_assignment())
+        # print("Dentro do for initializer")
+        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by GrammarParser#for_condition.
     def visitFor_condition(self, ctx:GrammarParser.For_conditionContext):
-        print("Dentro do for condition")
-        if(ctx.expression()):
-            return self.visit(ctx.expression())
+        # print("Dentro do for condition")
+        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by GrammarParser#for_step.
     def visitFor_step(self, ctx:GrammarParser.For_stepContext):
-        print("Dentro do for step")
-        if(ctx.variable_assignment()):
-            return self.visit(ctx.variable_assignment())
-
+        # print("Dentro do for step")
+        return self.visitChildren(ctx)
 
     # Visit a parse tree produced by GrammarParser#variable_definition.
     def visitVariable_definition(self, ctx:GrammarParser.Variable_definitionContext):
@@ -187,92 +179,103 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     return
                 else:
 
-                    print("Variable name and type:", tyype, array_name)
+                    # print("Variable name and type:", tyype, array_name)
 
                     self.ids_defined[array_name] = {'tyype': tyype, 'value': value}
                     
                     if(ctx.array_literal()):
                         ret_arr_literal = self.visit(ctx.array_literal(i))
 
-                        print("Ret arr literal", ret_arr_literal)
+                        # print("Ret arr literal", ret_arr_literal)
                         if(ret_arr_literal):
                             # print("Type:", tyype)
                             # print("Type.int", Type.INT)
                             # print(tyype == Type.INT and Type.STRING in ret_arr_literal)
+                            if(tyype == Type.FLOAT and Type.STRING in ret_arr_literal):
+                                index = ret_arr_literal.index(Type.STRING)
+                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
+                            if(tyype == Type.INT and Type.STRING in ret_arr_literal):
+                                index = ret_arr_literal.index(Type.STRING)
+                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
                             if(tyype == Type.INT and Type.FLOAT in ret_arr_literal):
                                 print('WARNING: possible loss of information assigning float expression to int variable \''+array_name+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
-                            elif(tyype == Type.FLOAT and Type.STRING in ret_arr_literal):
-                                index = ret_arr_literal.index(Type.STRING)
-                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
-                            elif(tyype == Type.INT and Type.STRING in ret_arr_literal):
-                                index = ret_arr_literal.index(Type.STRING)
-                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
 
         else:
             for i in range(len(ctx.identifier())):
                 
                 name = ctx.identifier(i).getText()
-                print("Variable name and type:", tyype, name)
+                # print("Variable name and type:", tyype, name)
                 # self.ids_defined[name] = {'tyype': tyype, 'value': None}
 
                 ret_expr = tyype
             
             # for i in range(len(ctx.expression())):
 
+            #adicionar tratamento de erro e warning de variáveis
                 if(ctx.expression(i)):
                     token = ctx.identifier(i).IDENTIFIER().getPayload() # Obtém o token referente à uma determinada regra léxica (neste caso, IDENTIFIER)
                     ret_expr = self.visit(ctx.expression(i))
-                    ret_type = ret_expr.get('tyype')
-                    value = ret_expr.get('value')
-                    print("Ret expr:", ret_expr)
-                    print("Ret type:", ret_type)
-                    print("Tyype:", tyype)
+                    ret_type = None
+                    value = None
+
+                    if(ret_expr != None):
+                        ret_type = ret_expr.get('tyype')
+                        value = ret_expr.get('value')
+                        # print("Nome:", name, "tipo:", ret_type, "valor:", value)
+                    # print("Ret expr:", ret_expr)
+                    # print("Ret type:", ret_type)
+                    # print("Tyype:", tyype)
 
                     if(ret_type == Type.VOID):
                         print('ERROR: trying to assign \'void\' expression to variable \''+name+'\' in line '+str(token.line)+' and column '+str(token.column) )
                     elif(ret_type == Type.ERROR):
-                        print("Continuando após o erro")
+                        # print("Continuando após o erro")
+                        return
                     else:
-                        if(value):
-                            if(tyype == Type.INT):
+                        if(value != None):
+                            if(tyype == Type.INT and not isinstance(value, str)):
+                                # print("Salvando var tipo int")
                                 self.ids_defined[name] = {'tyype': tyype, 'value': floor(value)}
                             else:
                                 self.ids_defined[name] = {'tyype': tyype, 'value': value}
 
-                            print("Expr return:", ret_expr)
+                            # print("Expr return:", ret_expr)
 
-                            if(ret_type == None):
-                                print("ERRO: tipo vazio")
+                            # if(ret_type == None):
+                            #     # print("ERRO: tipo vazio")
+                            #     return
 
-                            elif(ret_type != tyype):
+                            if(ret_type != tyype):
 
                                 if(tyype == Type.INT and ret_type == Type.FLOAT):
                                     print('WARNING: possible loss of information assigning float expression to int variable \''+ str(ctx.identifier(i).getText())+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
-                                elif(tyype == (Type.INT or Type.FLOAT) and ret_type == Type.STRING):
+                                elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
                                     print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                                 # elif(tyype == Type.STRING and ret_expr == (Type.INT or Type.FLOAT)):
                                 #     print('ERROR: trying to assign \''+ ret_expr +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                 else:
                     self.ids_defined[name] = {'tyype': tyype, 'value': None}
-
+        # print("Info do", name, "apos save:",  self.ids_defined.get(name))
 
     # Visit a parse tree produced by GrammarParser#variable_assignment.
     def visitVariable_assignment(self, ctx:GrammarParser.Variable_assignmentContext):
         
         #TODO implementar os operadores de =, +=, -=, *=, /=, ++ e --
 
-        print("Visitando variable assignment")
+        # print("Visitando variable assignment")
         name = ''
         index = ''
         token = ''
+        value = None
         if(ctx.array()):
-            print("Array")
+            # print("Array")
             ret_arr = self.visit(ctx.array())
             name = ret_arr.get('name')
             index = ret_arr.get('value')
-            print("No assignment nome", name, "valor", index)
+            ret_err = ret_arr.get('ret_err')
+            # print("No assignment nome", name, "valor", index)
             token = ctx.array().identifier().IDENTIFIER().getPayload()
-            if(index == Type.ERROR):
+            if(ret_arr == Type.ERROR):
                 return
         else:
             name = ctx.identifier().getText()
@@ -280,47 +283,56 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         
         var_info = self.ids_defined.get(name)
+        # print("Nome da var:", name, "var info", var_info)
         if(var_info == None):
             token = ctx.identifier().IDENTIFIER().getPayload()
             print('ERROR: undefined variable \''+ name + '\' in line ' + str(token.line) +  ' and column ' + str(token.column))
         else:
             var_type = var_info.get('tyype')
             var_value = var_info.get('value')
-            ret_expr = self.visit(ctx.expression())
-            ret_type = ret_expr.get('tyype')
-            ret_value = ret_expr.get('value')
-            print("Inside variable assignment, name '", name, "' type", var_type, 'ret type', ret_expr)
-            if(ret_type != Type.ERROR):
-                if(ret_type == Type.VOID):
-                    print('ERROR: trying to assign \''+ Type.VOID +'\' expression to variable \''+ name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
-                elif(var_type == Type.INT and ret_type == Type.FLOAT):
-                    print('WARNING: possible loss of information assigning float expression to int variable \''+name+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
-                elif(var_type == (Type.INT or Type.FLOAT) and ret_type == Type.STRING):
-                    print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
-                # elif(var_type == Type.STRING and ret_type == (Type.INT or Type.FLOAT)):
-                #     print("ERRO: tipos incompativeis")
-                else:
-                    value = None
-                    if(ctx.OP.text == '='):
-                        value = ret_value
-                    elif(ctx.OP.text == '-='):
-                        value = var_value - ret_value
-                    elif(ctx.OP.text == '+='):
-                        value = var_value + ret_value
-                    elif(ctx.OP.text == '*='):
-                        value = var_value * ret_value
-                    elif(ctx.OP.text == '/='):
-                        value = var_value / ret_value
-                    elif(ctx.OP.text == '++'):
-                        value = var_value + 1
-                    elif(ctx.OP.text == '--'):
-                        value = var_value - 1
+            if(ctx.OP.text == '++'):
+                value = var_value + 1
+            elif(ctx.OP.text == '--'):
+                value = var_value - 1
+            else:
+                ret_expr = self.visit(ctx.expression())
+                ret_type = ''
+                ret_value = 0
+
+                if(ret_expr != None):
+                    ret_type = ret_expr.get('tyype')
+                    ret_value = ret_expr.get('value')
+                # print("Inside variable assignment, name '", name, "' type", var_type, 'ret type', ret_expr)
+                if(ret_type != Type.ERROR):
+                    if(ret_type == Type.VOID):
+                        print('ERROR: trying to assign \''+ Type.VOID +'\' expression to variable \''+ name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
+                    elif(var_type == Type.INT and ret_type == Type.FLOAT):
+                        print('WARNING: possible loss of information assigning float expression to int variable \''+name+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
+                    elif(var_type == (Type.INT or Type.FLOAT) and ret_type == Type.STRING):
+                        print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
+                    # elif(var_type == Type.STRING and ret_type == (Type.INT or Type.FLOAT)):
+                    #     print("ERRO: tipos incompativeis")
                     else:
-                        print('ERROR: operador não reconhecido')
-                    
-                    if(ret_type == Type.INT):
-                        value = floor (value)
-                    self.ids_defined[name] = {'tyype': var_type, 'value': value}
+                        # print("Value do ret value", name, "=", ret_value, "na linha", token.line)
+                        if(ret_value != None):
+                            if(ctx.OP.text == '='):
+                                value = ret_value
+                            elif(ctx.OP.text == '-='):
+                                value = var_value - ret_value
+                            elif(ctx.OP.text == '+='):
+                                value = var_value + ret_value
+                            elif(ctx.OP.text == '*='):
+                                value = var_value * ret_value
+                            elif(ctx.OP.text == '/='):
+                                value = var_value / ret_value
+                        # else:
+                            # print('ERROR: operador não reconhecido'
+                            
+                            if(ret_type == Type.INT):
+                                value = floor(value)
+                                # print("Valor do int no operador")
+                        
+            self.ids_defined[name] = {'tyype': var_type, 'value': value}
 
 
 
@@ -329,7 +341,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         # retorno de expression: {'tyype':, 'value':}
 
-        print("Visitando expression")
+        # print("Visitando expression")
         if(ctx.integer()):
             return self.visit(ctx.integer())
         elif(ctx.floating()):
@@ -342,67 +354,79 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             ret_arr = self.visit(ctx.array())
             arr = self.ids_defined.get(ret_arr.get('name'))
             if(arr == None):
-                token = ret_arr.IDENTIFIER().getPayload()
-                print('ERROR: undefined array \''+ret_arr.getText()+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
-                return {'tyype': Type.ERROR, 'value': None}
+                token = ctx.array().identifier().IDENTIFIER().getPayload()
+                print('ERROR: undefined array \''+ctx.array().identifier().getText()+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
+                return {'tyype': Type.ERROR, 'value': 0}
             else:
                 return {'tyype': arr.get('tyype'), 'value': arr.get('value')}
 
         elif(ctx.expression(1)):
-            print("3 filhos")
+            # print("3 filhos") 
             ret_info_expr1 = self.visit(ctx.expression(0))
             ret_info_expr2 = self.visit(ctx.expression(1))
 
 
-            print("Ret info expr1:", ret_info_expr1)
-            print("Ret info expr2:", ret_info_expr2)
+            # print("Ret info expr1:", ret_info_expr1)
+            # print("Ret info expr2:", ret_info_expr2)
+            ret_expr1 = ''
+            ret_expr2 = ''
+            value_expr1 = 0
+            value_expr2 = 0
+            if(ret_info_expr1 != None):
+                ret_expr1 = ret_info_expr1.get('tyype')
+                value_expr1 = ret_info_expr1.get('value')
+                # print("Value expr1:", value_expr1)
+            
+            if(ret_info_expr2 != None):
+                ret_expr2 = ret_info_expr2.get('tyype')
+                value_expr2 = ret_info_expr2.get('value')
+                # print("Value expr2:", value_expr2)
 
-            ret_expr1 = ret_info_expr1.get('tyype')
-            ret_expr2 = ret_info_expr2.get('tyype')
 
-            op_type = ctx.OP.text
             ret_tyype = ret_expr1
-            print('Operador:', ctx.OP.text)
+            op_type = ctx.OP.text
+            # print('Operador:', ctx.OP.text)
             # if(ctx.OP.type == '+'):
                 # print("Operador mais")
 
-            #TODO implementar os operadores de >, >=, <=, <, !=, ==
-
             if((ret_expr1 == (Type.FLOAT or Type.INT) and ret_expr2 == Type.STRING) and (ret_expr1 == Type.STRING  and ret_expr2 == (Type.FLOAT or Type.INT))):
-                print("ERRO: tipos incompativeis")
+                # print("ERRO: tipos incompativeis")
                 return {'tyype': None,'value': Type.ERROR}
             elif((ret_expr1 == Type.FLOAT and ret_expr2 == Type.INT) or (ret_expr1 == Type.INT and ret_expr2 == Type.FLOAT)):
                 if(op_type == '*' or op_type == '/'):
                     ret_tyype = Type.FLOAT
                 elif(op_type == '+' or op_type == '-'):
-                    ret_tyype = Type.INT
+                    ret_tyype = Type.FLOAT
                 
             elif((ret_expr1 == None) or (ret_expr2 == None)):
-                print("ERRO: tipo vazio ou variavel indefinida")
-                return {'tyype': Type.ERROR,'value': None}
+                # print("ERRO: tipo vazio ou variavel indefinida")
+                return {'tyype': Type.ERROR,'value': 0}
             
-            value_expr1 = ret_info_expr1.get('value')
-            value_expr2 = ret_info_expr2.get('value')
+            
+            if(value_expr1 == None or value_expr2 == None):
+                return {'tyype': ret_tyype, 'value': None}
 
-            if(value_expr1 != None and value_expr2 != None):
+            if(not isinstance(value_expr1, str) and not isinstance(value_expr2, str)):
                 if(op_type == '*'):
                     return {'tyype': ret_tyype, 'value': value_expr1 * value_expr2}
                 elif(op_type == '/'):
+                    if(value_expr2 == 0):
+                        print("ERROR: division by zero")
+                        return {'tyype': ret_tyype, 'value': None} 
                     return {'tyype': ret_tyype, 'value': value_expr1 / value_expr2}
                 elif(op_type == '+'):
                     return {'tyype': ret_tyype, 'value': value_expr1 + value_expr2}
                 elif(op_type == '-'):
                     return {'tyype': ret_tyype, 'value': value_expr1 - value_expr2}
-            else:
-                return {'tyype': ret_tyype, 'value': None}
-
+                elif(op_type in ['>', '>=', '<', '<=', '!=']):
+                    return {'tyype': None, 'value': None}
 
         elif(ctx.getChildCount() == 2): #OP expression
-            print("2 filhos")
+            # print("2 filhos")
 
             ret_expr = self.visit(ctx.expression(0))
             if(ret_expr == None):
-                print('ERRO: tipo vazio')
+                # print('ERRO: tipo vazio')
                 return {'tyype': Type.ERROR,'value': None}
             elif(ret_expr == Type.ERROR):
                 return {'tyype': Type.ERROR,'value': None}
@@ -413,16 +437,20 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 else:
                     return ret_expr
         elif(ctx.getChildCount() == 3 and ctx.expression(1) == None):
-            print("parenteses")
+            # print("parenteses")
             return self.visit(ctx.expression(0)) 
         
         elif(ctx.function_call()):
             ret_f = self.visit(ctx.function_call())
 
-            if(ret_f == Type.VOID):
-                return {'tyype': Type.VOID,'value': None}
-            elif(ret_f == Type.ERROR):
-                return {'tyype': Type.ERROR,'value': None}
+            err = ret_f.get('ret_err')
+
+            if(err == Type.VOID):
+                return {'tyype': ret_f.get('tyype'),'value': None, 'ret_err': Type.VOID}
+            elif(err == Type.ERROR):
+                return {'tyype': ret_f.get('tyype'),'value': None, 'ret_err': Type.ERROR}
+            else:
+                return ret_f
 
 
 
@@ -430,39 +458,41 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     def visitArray(self, ctx:GrammarParser.ArrayContext):
 
         #retorno de array: {'name': name, 'value': valor do indice}
-        print("Visitando array")
+        # print("Visitando array")
         token = ctx.identifier().IDENTIFIER().getPayload() # Obtém o token referente à uma determinada regra léxica (neste caso, IDENTIFIER)
         name = ctx.identifier().getText()
         ret_expr = self.visit(ctx.expression())
         ret_type = ret_expr.get('tyype')
         index_value = ret_expr.get('value')
+        tyype = ''
 
         if(ret_expr == Type.ERROR):
-            return {'name': name, 'value': Type.ERROR}
+            return {'name': name, 'value': None, 'ret_err': Type.ERROR}
         elif(ret_expr == Type.VOID):
             print('ERROR: trying to assign \'void\' expression to variable \'' + name + '\'in line '+ str(token.line)+ ' and column ' + str(token.column))
-            return {'name': name, 'value': Type.VOID}
+            return {'name': name, 'value': None, 'ret_err': Type.VOID}
         else:
-            print("Retorno do tipo do array:", ret_type, "valor:", index_value)
+            # print("Retorno do tipo do array:", ret_type, "valor:", index_value)
             if(index_value < 0):
                 print('ERROR: array expression must be an positive integer, but it is ' + str(index_value) + ' in line '+ str(token.line)+' and column ' + str(token.column))
-                index_value = Type.ERROR
+                tyype = Type.ERROR
             elif(ret_type != Type.INT):
                 print('ERROR: array expression must be an integer, but it is ' + ret_type + ' in line '+ str(token.line)+' and column ' + str(token.column))
-                index_value = Type.ERROR
+                tyype = Type.ERROR
             
-            return {'name': name, 'value': index_value}
+            return {'name': name, 'value': index_value, 'ret_err': tyype}
 
 
     # Visit a parse tree produced by GrammarParser#array_literal.
     def visitArray_literal(self, ctx:GrammarParser.Array_literalContext):
-        print('Visitando array literal')
+        # print('Visitando array literal')
         ret_arr = []
         if(ctx.getChildCount() > 0):
             for i in range(len(ctx.expression())):
                 ret_expr = self.visit(ctx.expression(i))
                 ret_arr.append(ret_expr.get('tyype'))
-                print("Ret expr arr literal", )
+                # print("Ret expr arr literal", )
+            # print("Arr literal:", ret_arr)
             return ret_arr
 
         else:
@@ -475,53 +505,58 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         # retorno do tipo: {'tyype': tipo da funcao, 'value': erro, se houver}
 
-        print("Visitando function call")
+        # print("Visitando function call")
         f_name = ctx.identifier().getText()
         f_info = self.ids_defined.get(f_name)
+        f_type = f_info.get('tyype')
+        f_params = f_info.get('params')
 
         token = ctx.identifier().IDENTIFIER().getPayload()
 
         # print("Info Function:", f_info)
         if(f_info == None):
             print('ERROR: undefined function \''+f_name+'\' in line '+ str(token.line) + ' and column ' +str(token.column) )
-            return {'tyype': None, 'value': Type.ERROR}
+            return {'tyype': f_type, 'value': None, 'ret_err': Type.ERROR}
         else:
-            f_type = f_info.get('tyype')
-            f_params = f_info.get('params')
-            value = ''
+            value = 0
+            ret_err = ''
             for i in range(len(ctx.expression())):
                 ret_expr = self.visit(ctx.expression(i))
-                ret_tyype = ret_expr.get('tyype')
+                
+                ret_tyype = None
+                if(ret_expr != None):
+                    ret_tyype = ret_expr.get('tyype')
                 
                 # print("Len params:", len(f_params), "i:", i)
 
                 if(i > (len(f_params) - 1)):
                     print('ERROR: incorrect number of parameters for function \''+f_name+'\' in line ' +str(token.line)+' and column '+str(token.column)+'. Expecting '+str(len(f_params))+', but '+str(len(ctx.expression()))+' were given')
-                    return{'tyype': f_type, 'value': Type.ERROR}
+                    return {'tyype': f_type, 'value': None, 'ret_err': Type.ERROR}
                     # return Type.ERROR
                 else:
                     param = f_params[i][0] #pega o i-ésimo parametro, mas apenas o tipo dele
                     # checando os tipos
                     if(param == Type.INT and ret_tyype == Type.FLOAT):
-                        print('WARNING: possible loss of information assigning float expression to int expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
+                        print('WARNING: possible loss of information converting float expression to int expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
                     elif(param == Type.INT and ret_tyype == Type.STRING):
                         print('ERROR: trying to assign string expression to int expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
-                        value = Type.ERROR
+                        ret_err = Type.ERROR
                         #por algum motivo param == (Type.INT or Type.FLOAT) não funciona
                         # erro
                     elif(param == Type.FLOAT and ret_tyype == Type.STRING):
                         print('ERROR: trying to assign string expression to float expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
-                        value = Type.ERROR
+                        ret_err = Type.ERROR
                         # erro
                     elif(param == Type.STRING and ret_tyype == Type.INT):
                         print('ERROR: trying to assign int expression to string expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
-                        value = Type.ERROR
+                        ret_err = Type.ERROR
                         # erro
                     elif(param == Type.STRING and ret_tyype == Type.FLOAT):
                         print('ERROR: trying to assign float expression to string expression in parameter '+ str(i) +' of function \''+f_name+'\' in line '+ str(token.line) +' and column ' + str(token.column))
-                        value = Type.ERROR
+                        ret_err = Type.ERROR
                     # erro
-            return {'tyype': f_type, 'value': value}
+            # print("Retornando da chamada de funcao:", {'tyype': f_type, 'value': value})
+            return {'tyype': f_type, 'value': value, 'ret_err': ret_err}
             # checando os parametros
 
 
@@ -573,8 +608,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         if(var_info == None):
             token = ctx.IDENTIFIER().getPayload()
             print('ERROR: undefined variable \''+ ctx.IDENTIFIER().getText() + '\' in line ' + str(token.line) +' and column ' +str(token.column))
-            return {'tyype': None, 'value':Type.ERROR}
+            return {'tyype': Type.ERROR, 'value': None}
         else:
-            print("Retornando identifier var info", var_info)
+            # print("Retornando identifier var info", var_info)
             return var_info
 
