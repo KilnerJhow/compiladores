@@ -185,22 +185,21 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
                     self.ids_defined[array_name] = {'tyype': tyype, 'value': value}
                     
-                    if(ctx.array_literal()):
+                    if(ctx.array_literal(i)):
                         ret_arr_literal = self.visit(ctx.array_literal(i))
 
                         # print("Ret arr literal", ret_arr_literal)
                         if(ret_arr_literal):
-                            # print("Type:", tyype)
-                            # print("Type.int", Type.INT)
-                            # print(tyype == Type.INT and Type.STRING in ret_arr_literal)
+                            # print("Arr literal")
                             if(tyype == Type.FLOAT and Type.STRING in ret_arr_literal):
                                 index = ret_arr_literal.index(Type.STRING)
-                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
+                                print('ERROR: trying to initialize '+ Type.STRING +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
                             if(tyype == Type.INT and Type.STRING in ret_arr_literal):
                                 index = ret_arr_literal.index(Type.STRING)
-                                print('ERROR: trying to initialize \''+ Type.STRING +'\' expression to \''+tyype+ '\' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
+                                print('ERROR: trying to initialize '+ Type.STRING +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
                             if(tyype == Type.INT and Type.FLOAT in ret_arr_literal):
-                                print('WARNING: possible loss of information assigning float expression to int variable \''+array_name+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
+                                index = ret_arr_literal.index(Type.FLOAT)
+                                print('WARNING: possible loss of information initializing '+ Type.FLOAT +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
 
         else:
             for i in range(len(ctx.identifier())):

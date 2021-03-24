@@ -1,16 +1,14 @@
-python3 antlr4-python3-runtime-4.7.2/src/main.py
-WARNING: possible loss of information assigning float expression to int variable 'a' in line 23 and column 2
-WARNING: possible loss of information returning float expression from int function 'scalar' in line 30 and 1
-WARNING: possible loss of information converting float expression to int expression in parameter 0 of function 'scalar' in line 38 and column 10
-WARNING: possible loss of information assigning float expression to int variable 'valor1' in line 38 and column 1
-WARNING: possible loss of information assigning float expression to int variable 'ai' in line 40 and column 5
-WARNING: possible loss of information assigning float expression to int variable 'k' in line 41 and column 5
-ERROR: trying to assign 'char *' expression to variable 'v' in line 46 and column 5
-ERROR: trying to assign 'char *' expression to variable 'kik' in line 47 and column 7
-ERROR: trying to assign 'char *' expression to variable 'v' in line 48 and column 1
-ERROR: trying to initialize 'char *' expression to 'int' array 'kkkk' at index 1 of array literal in line 49 and column 5
-WARNING: possible loss of information assigning float expression to int variable 'kkkk' in line 49 and column 5
-ERROR: array expression must be an integer, but it is float in line 50 and column 5
-ERROR: undefined array 'kkk' in line 50 and column 5
-ERROR: incorrect number of parameters for function 'scalar' in line 51 and column 8. Expecting 2, but 3 were given
-ERROR: trying to return a non void expression from void function 'main' in line 51 and column 1
+ERROR: trying to return a non void expression from void function 'doing' in line 21 and column 1
+WARNING: possible loss of information assigning float expression to int variable 'f' in line 49 and column 5
+WARNING: possible loss of information assigning float expression to int variable 'f' in line 50 and column 1
+WARNING: possible loss of information assigning float expression to int variable 'f' in line 51 and column 1
+WARNING: possible loss of information assigning float expression to int variable 'hello' in line 53 and column 5
+WARNING: possible loss of information assigning float expression to int variable 'hello' in line 54 and column 1
+WARNING: possible loss of information assigning float expression to int variable 'hello' in line 55 and column 1
+WARNING: possible loss of information converting float expression to int expression in parameter 0 of function 'square' in line 65 and column 5
+WARNING: possible loss of information converting float expression to int expression in parameter 0 of function 'fatorial' in line 66 and column 5
+WARNING: possible loss of information converting float expression to int expression in parameter 0 of function 'square' in line 67 and column 5
+ERROR: trying to assign 'void' expression to variable 'k' in line 71 and column 5
+ERROR: binary operator '+' used on type void in line 72 and column 24
+ERROR: undefined variable 'uv' in line 74 and column 1
+ERROR: trying to return void expression from function 'main' in line 75 and column 1
