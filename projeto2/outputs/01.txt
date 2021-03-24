@@ -12,4 +12,4 @@ WARNING: possible loss of information initializing float expression to int array
 ERROR: undefined array 'kkk' in line 50 and column 5
 ERROR: array expression must be an integer, but it is float in line 50 and column 5
 ERROR: incorrect number of parameters for function 'scalar' in line 51 and column 8. Expecting 2, but 3 were given
-ERROR: trying to return a non void expression from void function 'main' in line 51 and column 1
+ERROR: trying to return a non void expression from void function 'main' in line 51 and column 1=

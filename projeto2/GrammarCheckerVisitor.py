@@ -109,7 +109,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 if(ret_type in [Type.STRING, Type.INT, Type.FLOAT] and f_type == Type.VOID):
                     print('ERROR: trying to return a non void expression from void function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
                 if(ret_type == Type.FLOAT and f_type == Type.INT):
-                    print('WARNING: possible loss of information returning float expression from int function \''+self.inside_what_function+'\' in line '+str(token.line)+ ' and '+str(token.column))
+                    print('WARNING: possible loss of information returning float expression from int function \''+self.inside_what_function+'\' in line '+str(token.line)+ ' and column  '+str(token.column))
                 if(ret_type == Type.STRING and f_type in [Type.INT, Type.FLOAT]):
                     print('ERROR: trying to return a string expression from int function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
                 if(ret_type == Type.VOID and f_type in [Type.STRING, Type.INT, Type.FLOAT]):
