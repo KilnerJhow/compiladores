@@ -180,13 +180,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     return
                 else:
                     
-                    if(value != None):
-                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1]}
-                    else:
-                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
 
                     if(ctx.array_literal(i)):
-                        ret_arr_literal = self.visit(ctx.array_literal(i))
+                        ret = self.visit(ctx.array_literal(i))
+
+                        ret_arr_literal = ret.get('tyype')
 
                         if(ret_arr_literal):
                             # print("Arr literal")
@@ -200,6 +198,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                                 index = ret_arr_literal.index(Type.FLOAT)
                                 print('WARNING: possible loss of information initializing '+ Type.FLOAT +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
 
+                    if(value != None):
+                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1], 'literal': ret.get('value')}
+                    else:
+                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1], 'literal': None}
         else:
             for i in range(len(ctx.identifier())):
                 
@@ -243,9 +245,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by GrammarParser#variable_assignment.
     def visitVariable_assignment(self, ctx:GrammarParser.Variable_assignmentContext):
         
-        #TODO implementar os operadores de =, +=, -=, *=, /=, ++ e --
+        #TODO salvar os valores dos arrays nos indices
 
-        # print("Visitando variable assignment")
         name = ''
         index = None
         token = ''
@@ -528,16 +529,18 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     def visitArray_literal(self, ctx:GrammarParser.Array_literalContext):
         # print('Visitando array literal')
         ret_arr = []
+        ret_value = []
         if(ctx.getChildCount() > 0):
             for i in range(len(ctx.expression())):
                 ret_expr = self.visit(ctx.expression(i))
                 ret_arr.append(ret_expr.get('tyype'))
+                ret_value.append(ret_expr.get('value'))
                 # print("Ret expr arr literal", )
             # print("Arr literal:", ret_arr)
-            return ret_arr
+            return {'tyype': ret_arr, 'value': ret_value}
 
         else:
-            return []
+            return {'tyype': None, 'value': None}
 
 
 
