@@ -108,7 +108,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
 
             if(ret_type != f_type):
-
                 if(ret_type in [Type.STRING, Type.INT, Type.FLOAT] and f_type == Type.VOID):
                     print('ERROR: trying to return a non void expression from void function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column '+str(token.column))
                 if(ret_type == Type.FLOAT and f_type == Type.INT):
@@ -167,7 +166,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         tyype = ctx.tyype().getText()
 
         name = ''
-        array_name = ''
         ret_arr_literal = []
         if(ctx.array(0) != None):
             for i in range(len(ctx.array())):
@@ -181,18 +179,15 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 if(value == Type.ERROR or value == Type.VOID):
                     return
                 else:
-
-                    # print("Variable name and type:", tyype, array_name)
                     
                     if(value != None):
-                        self.ids_defined[array_name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1]}
+                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1]}
                     else:
-                        self.ids_defined[array_name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
+                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
 
                     if(ctx.array_literal(i)):
                         ret_arr_literal = self.visit(ctx.array_literal(i))
 
-                        # print("Ret arr literal", ret_arr_literal)
                         if(ret_arr_literal):
                             # print("Arr literal")
                             if(tyype == Type.FLOAT and Type.STRING in ret_arr_literal):
@@ -209,14 +204,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             for i in range(len(ctx.identifier())):
                 
                 name = ctx.identifier(i).getText()
-                # print("Variable name and type:", tyype, name)
-                # self.ids_defined[name] = {'tyype': tyype, 'value': None}
-
                 ret_expr = tyype
             
-            # for i in range(len(ctx.expression())):
-
-            #adicionar tratamento de erro e warning de variáveis
                 if(ctx.expression(i)):
                     token = ctx.identifier(i).IDENTIFIER().getPayload() # Obtém o token referente à uma determinada regra léxica (neste caso, IDENTIFIER)
                     ret_expr = self.visit(ctx.expression(i))
@@ -227,7 +216,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         ret_type = ret_expr.get('tyype')
                         value = ret_expr.get('value')
                         # print("Nome:", name, "tipo:", ret_type, "valor:", value)
-                    # print("Ret expr:", ret_expr)
 
                     if(ret_type == Type.VOID):
                         print('ERROR: trying to assign \'void\' expression to variable \''+name+'\' in line '+str(token.line)+' and column '+str(token.column) )
@@ -235,32 +223,22 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         # print("Continuando após o erro")
                         return
                     else:
-                        # if(value != None):
-                        if(tyype == Type.INT and not isinstance(value, str) and value != None):
-                            # print("Salvando var tipo int")
-                            
-                            if(value != None):
-                                self.ids_defined[array_name] = {'tyype': tyype, 'value': floor(value), 'cte': True, 'id': self.stack_statement[-1]}
+                        if(value != None):
+                            if(tyype == Type.INT and not isinstance(value, str) and value != None):
+                                self.ids_defined[name] = {'tyype': tyype, 'value': floor(value), 'cte': True, 'id': self.stack_statement[-1]}
                             else:
-                                self.ids_defined[array_name] = {'tyype': tyype, 'value': floor(value), 'cte': False, 'id': self.stack_statement[-1]}
+                                self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1]}
+
+                            if(ret_type != tyype):
+
+                                if(tyype == Type.INT and ret_type == Type.FLOAT):
+                                    print('WARNING: possible loss of information assigning float expression to int variable \''+ str(ctx.identifier(i).getText())+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
+                                elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
+                                    print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                         else:
-                            # print("Salvando var tipo float ou string")
-                            if(value != None):
-                                self.ids_defined[array_name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1]}
-                            else:
-                                self.ids_defined[array_name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
-
-                        if(ret_type != tyype):
-
-                            if(tyype == Type.INT and ret_type == Type.FLOAT):
-                                print('WARNING: possible loss of information assigning float expression to int variable \''+ str(ctx.identifier(i).getText())+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
-                            elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
-                                print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
-                            # elif(tyype == Type.STRING and ret_expr == (Type.INT or Type.FLOAT)):
-                            #     print('ERROR: trying to assign \''+ ret_expr +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
+                            self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
                 else:
                     self.ids_defined[name] = {'tyype': tyype, 'value': None, 'cte': False, 'id': self.stack_statement[-1]}
-        # print("Info do '"+ name +"' apos save:",  self.ids_defined.get(name))
 
     # Visit a parse tree produced by GrammarParser#variable_assignment.
     def visitVariable_assignment(self, ctx:GrammarParser.Variable_assignmentContext):
@@ -272,6 +250,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         index = None
         token = ''
         value = None
+        cte = False
         if(ctx.array()):
             # print("Array")
             ret_arr = self.visit(ctx.array())
@@ -303,9 +282,19 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             
             
             if(ctx.OP.text == '++'):
-                value = var_value + 1
+                if(self.stack_statement[-1] != var_info.get('id')):
+                    print("diferente")
+                    cte = False
+                else:
+                    cte = True
+                    value = var_value + 1
             elif(ctx.OP.text == '--'):
-                value = var_value - 1
+                if(self.stack_statement[-1] != var_info.get('id')):
+                    print("diferente")
+                    cte = False
+                else:
+                    cte = True
+                    value = var_value - 1
             else:
                 ret_expr = self.visit(ctx.expression())
                 ret_type = ''
@@ -316,7 +305,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     ret_type = ret_expr.get('tyype')
                     ret_value = ret_expr.get('value')
             
-                # print("Inside variable assignment, name '", name, "' type", var_type, 'ret type', ret_expr)
                 if(ret_type != Type.ERROR):
                     if(ret_type == Type.VOID):
                         print('ERROR: trying to assign \''+ Type.VOID +'\' expression to variable \''+ name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
@@ -324,29 +312,28 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         print('WARNING: possible loss of information assigning float expression to int variable \''+name+ '\' in line ' + str(token.line) +' and column ' + str(token.column))
                     elif(var_type == (Type.INT or Type.FLOAT) and ret_type == Type.STRING):
                         print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
-                    # elif(var_type == Type.STRING and ret_type == (Type.INT or Type.FLOAT)):
-                    #     print("ERRO: tipos incompativeis")
                     else:
-                        # print("Value do ret value", name, "=", ret_value, "na linha", token.line)
                         if(ret_value != None and var_value != None):
                             if(self.stack_statement[-1] != var_info.get('id')):
                                 print("diferente")
+                                cte = False
 
-                            if(ctx.OP.text == '='):
-                                value = ret_value
-                            elif(ctx.OP.text == '-='):
-                                value = var_value - ret_value
-                            elif(ctx.OP.text == '+='):
-                                value = var_value + ret_value
-                            elif(ctx.OP.text == '*='):
-                                value = var_value * ret_value
-                            elif(ctx.OP.text == '/='):
-                                value = var_value / ret_value
-                            if(ret_type == Type.INT):
-                                value = floor(value)
-                                # print("Valor do int no operador")
+                            else:
+                                cte = True
+                                if(ctx.OP.text == '='):
+                                    value = ret_value
+                                elif(ctx.OP.text == '-='):
+                                    value = var_value - ret_value
+                                elif(ctx.OP.text == '+='):
+                                    value = var_value + ret_value
+                                elif(ctx.OP.text == '*='):
+                                    value = var_value * ret_value
+                                elif(ctx.OP.text == '/='):
+                                    value = var_value / ret_value
+                                if(ret_type == Type.INT):
+                                    value = floor(value)
                
-            self.ids_defined[name] = {'tyype': var_type, 'value': value}
+            self.ids_defined[name] = {'tyype': var_type, 'value': value, 'cte': cte, 'id': var_info.get('id')}
 
 
 

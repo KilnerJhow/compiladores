@@ -1,1 +1,8 @@
-python3 antlr4-python3-runtime-4.7.2/src/main.py
+line 13 Expression 0 < 10 simplified to: 1
+line 21 Expression 1 * 2 simplified to: 2
+line 23 Expression 2 * 10 simplified to: 20
+line 23 Expression 20 / 5 simplified to: 4.0
+line 25 Expression - 1 simplified to: -1
+line 37 Expression - 1 simplified to: -1
+line 38 Expression 33 - 3 simplified to: 30
+line 38 Expression 3 + 821 simplified to: 824
