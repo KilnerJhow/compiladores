@@ -1,14 +1,17 @@
 #include <stdio.h>
 
 int main () {
-	int a = 3 * 5 - 2 + 1;
-	int b = 4 + a * 3;
-	int d = a + b*4;
-	if(a > b) {
-		d = 20;
+	int a[3] = {1, 2, 3};
+	int b = 3;
+
+	b = 4;
+	a[0] = 4;
+
+	if(a[0] > (b+1)){
+		b = 5;
 	}
 
-	int f = d + 1;
+	int c = a[0] + b;
 
 	return 0;
 }
