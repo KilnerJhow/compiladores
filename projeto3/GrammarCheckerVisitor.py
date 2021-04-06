@@ -52,10 +52,21 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     inside_statement = False
     stack_statement = [0]
     count = 0
+    global_variable = False
+    constant = True
     
     # Visit a parse tree produced by GrammarParser#fiile.
     def visitFiile(self, ctx:GrammarParser.FiileContext):
-        return self.visitChildren(ctx)
+        if ctx.variable_definition():
+            self.global_variable = True
+            # print("global variable")
+            for i in range(len(ctx.variable_definition())): 
+                self.visit(ctx.variable_definition(i))
+            self.global_variable = False
+        if ctx.function_definition():
+            for i in range(len(ctx.function_definition())):
+                self.visit(ctx.function_definition(i))
+
 
 
      # Visit a parse tree produced by GrammarParser#function_definition.
@@ -115,8 +126,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     print('ERROR: trying to return void expression from function \''+self.inside_what_function+'\' in line '+str(token.line)+' and column ' +str(token.column))
         elif(ctx.for_loop()):
             self.count += 1
+            self.constant = False
             self.stack_statement.append(self.count)
             self.visit(ctx.for_loop())
+            self.constant = True
             self.stack_statement.pop()
         elif(ctx.if_statement):
             self.count += 1
@@ -126,7 +139,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         elif(ctx.body()):
             self.count += 1
             self.stack_statement.append(self.count)
-            self.visit(ctx.body)              
+            self.visit(ctx.body)
             self.stack_statement.pop()
 
     # Visit a parse tree produced by GrammarParser#if_statement.
@@ -201,34 +214,30 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                                 index = ret_arr_literal_type.index(Type.FLOAT)
                                 print('WARNING: possible loss of information initializing '+ Type.FLOAT +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
 
-                    if(value != None and literal != None):
+                    if(value != None and literal != None and self.constant and not self.global_variable):
                         self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1], 'literal': literal}
                     else:
                         self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1], 'literal': None}
         else:
             for i in range(len(ctx.identifier())):
-                
                 name = ctx.identifier(i).getText()
                 ret_expr = tyype
-            
                 if(ctx.expression(i)):
                     token = ctx.identifier(i).IDENTIFIER().getPayload() # Obtém o token referente à uma determinada regra léxica (neste caso, IDENTIFIER)
                     ret_expr = self.visit(ctx.expression(i))
                     ret_type = None
                     value = None
-
                     if(ret_expr != None):
                         ret_type = ret_expr.get('tyype')
                         value = ret_expr.get('value')
                         # print("Nome:", name, "tipo:", ret_type, "valor:", value)
-
                     if(ret_type == Type.VOID):
                         print('ERROR: trying to assign \'void\' expression to variable \''+name+'\' in line '+str(token.line)+' and column '+str(token.column) )
                     elif(ret_type == Type.ERROR):
                         # print("Continuando após o erro")
                         return
                     else:
-                        if(value != None):
+                        if(value != None and not self.global_variable and self.constant):
                             if(tyype == Type.INT and not isinstance(value, str) and value != None):
                                 self.ids_defined[name] = {'tyype': tyype, 'value': floor(value), 'cte': True, 'id': self.stack_statement[-1]}
                             else:
@@ -241,9 +250,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                                 elif(tyype in [Type.INT, Type.FLOAT] and ret_type == Type.STRING):
                                     print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+ str(ctx.identifier(i).getText())+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                         else:
-                            self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1]}
+                            self.ids_defined[name] = {'tyype': tyype, 'value': None, 'cte': False, 'id': self.stack_statement[-1]}
                 else:
                     self.ids_defined[name] = {'tyype': tyype, 'value': None, 'cte': False, 'id': self.stack_statement[-1]}
+            # print("Salvando variavel:", name, "dados:", self.ids_defined[name])
 
     # Visit a parse tree produced by GrammarParser#variable_assignment.
     def visitVariable_assignment(self, ctx:GrammarParser.Variable_assignmentContext):
@@ -294,13 +304,13 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             if(ctx.OP.text == '++'):
                 if(self.stack_statement[-1] != var_info.get('id')): # Se for diferente, representa uma bifurcação
                     cte = False
-                else:
+                elif var_value != None:
                     cte = True
                     value = var_value + 1
             elif(ctx.OP.text == '--'):
                 if(self.stack_statement[-1] != var_info.get('id')):
                     cte = False
-                else:
+                elif var_value != None:
                     cte = True
                     value = var_value - 1
             else:
@@ -419,7 +429,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             if(value_expr1 == None or value_expr2 == None):
                 return {'tyype': ret_tyype, 'value': None}
 
-            if(not isinstance(value_expr1, str) and not isinstance(value_expr2, str)):
+            if(
+                not isinstance(value_expr1, str)
+                and not isinstance(value_expr2, str)
+                and not self.global_variable
+                and self.constant):
                 if(op_type == '*'):
                     print("line " + str(expr_line) + " Expression " + str(value_expr1) + " " + ctx.OP.text + " " + str(value_expr2) + " simplified to: " + str(value_expr1 * value_expr2))
                     return {'tyype': ret_tyype, 'value': value_expr1 * value_expr2}
@@ -469,14 +483,14 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             elif(ret_expr.get('value') == None):
                 return ret_expr
             else:
-                if(ctx.OP.text == '-'):
-                    print("line " + str(expr_line) + " Expression " + ctx.OP.text + " " + str(ret_expr.get('value')) + " simplified to: " + str(-ret_expr.get('value')))
-                    ret_expr['value'] = -ret_expr.get('value')
-                    return ret_expr
+                if(not self.global_variable and self.constant):
+                    if(ctx.OP.text == '-'):
+                        print("line " + str(expr_line) + " Expression " + ctx.OP.text + " " + str(ret_expr.get('value')) + " simplified to: " + str(-ret_expr.get('value')))
+                        ret_expr['value'] = -ret_expr.get('value')
+                        return ret_expr
                 else:
                     return ret_expr
         elif(ctx.getChildCount() == 3 and ctx.expression(1) == None):
-            # print("parenteses")
             return self.visit(ctx.expression(0)) 
         
         elif(ctx.function_call()):
