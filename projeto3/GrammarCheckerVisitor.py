@@ -185,20 +185,20 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         if(ctx.array(0) != None):
             for i in range(len(ctx.array())):
                 name = ctx.array(i).identifier().getText()
-                self.ids_defined[name] = {'tyype': tyype, 'value': None} # Salva o nome do array
+                self.ids_defined[name] = {'tyype': tyype, 'index': None} # Salva o nome e o index do aray
                 ret_arr = self.visit(ctx.array(i))
                 token = ctx.array(i).identifier().IDENTIFIER().getPayload()
                 array_name = ret_arr.get('name')
-                value = ret_arr.get('value') # Valor do index
+                index = ret_arr.get('index') # Valor do index
                 ret_err = ret_arr.get('ret_err')
-                literal = None
+                literal = []
+                if index != None:
+                    literal = [None] * index
                 ret_arr_literal_type = []
                 if(ret_err == Type.ERROR or ret_err == Type.VOID):
                     return
                 else:
-                    
-
-                    if(ctx.array_literal(i)):
+                    if ctx.array_literal(i):
                         ret = self.visit(ctx.array_literal(i))
                         ret_arr_literal_type = ret.get('tyype')
                         literal = ret.get('literal')
@@ -213,11 +213,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                             if(tyype == Type.INT and Type.FLOAT in ret_arr_literal_type):
                                 index = ret_arr_literal_type.index(Type.FLOAT)
                                 print('WARNING: possible loss of information initializing '+ Type.FLOAT +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
-
-                    if(value != None and literal != None and self.constant and not self.global_variable):
-                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': True, 'id': self.stack_statement[-1], 'literal': literal}
+                    if(index != None and self.constant and not self.global_variable):
+                        self.ids_defined[name] = {'tyype': tyype, 'index': index, 'cte': True, 'id': self.stack_statement[-1], 'literal': literal}
                     else:
-                        self.ids_defined[name] = {'tyype': tyype, 'value': value, 'cte': False, 'id': self.stack_statement[-1], 'literal': None}
+                        self.ids_defined[name] = {'tyype': tyype, 'index': index, 'cte': False, 'id': self.stack_statement[-1], 'literal': None}
         else:
             for i in range(len(ctx.identifier())):
                 name = ctx.identifier(i).getText()
@@ -266,11 +265,12 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         value = None
         cte = False
         var_value = None
+        var_index = None
         if(ctx.array()):
             # print("Array")
             ret_arr = self.visit(ctx.array())
             name = ret_arr.get('name')
-            index = ret_arr.get('value')
+            index = ret_arr.get('index')
             ret_err = ret_arr.get('ret_err')
             token = ctx.array().identifier().IDENTIFIER().getPayload()
             if ret_err == Type.ERROR:
@@ -287,18 +287,23 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             print('ERROR: undefined variable \''+ name + '\' in line ' + str(token.line) +  ' and column ' + str(token.column))
         else:
             var_type = var_info.get('tyype')
-            
+            literal = self.ids_defined[name].get('literal')
+            var_index = self.ids_defined[name].get('index')
             if ctx.array():
                 literal = var_info.get('literal')
-                if literal != None:
-                    var_value = literal[index]
+                if var_index != None and index != None:
+                    if index < var_index:
+                        if literal != None and index != None:
+                            var_value = literal[index]
+                        else:
+                            var_value = None
+                    else:
+                        print('ERROR: index out of bounds in variable \''+name+'\' in line '+str(token.line)+ ' and column '+ str(token.column))
+                        return
+                        var_value = None
+
             else:
                 var_value = var_info.get('value')
-            
-            
-            if(var_value != None):
-                if(index != None and index > var_value):
-                    print('ERROR: index out of bounds in variable \''+name+'\' in line '+str(token.line)+ ' and column '+ str(token.column))
             
             
             if(ctx.OP.text == '++'):
@@ -331,28 +336,33 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     elif(var_type == (Type.INT or Type.FLOAT) and ret_type == Type.STRING):
                         print('ERROR: trying to assign \''+ Type.STRING +'\' expression to variable \''+name+'\' in line '+ str(token.line) + ' and column '+ str(token.column))
                     else:
-                        if(ret_value != None and var_value != None):
+                        if ret_value != None:
                             if(self.stack_statement[-1] != var_info.get('id')):
                                 cte = False
 
                             else:
                                 cte = True
-                                if(ctx.OP.text == '='):
-                                    value = ret_value
-                                elif(ctx.OP.text == '-='):
-                                    value = var_value - ret_value
-                                elif(ctx.OP.text == '+='):
-                                    value = var_value + ret_value
-                                elif(ctx.OP.text == '*='):
-                                    value = var_value * ret_value
-                                elif(ctx.OP.text == '/='):
-                                    value = var_value / ret_value
+                                if var_value == None:
+                                    if(ctx.OP.text == '='):
+                                        value = ret_value
+                                else:
+                                    if(ctx.OP.text == '='):
+                                        value = ret_value
+                                    elif(ctx.OP.text == '-='):
+                                        value = var_value - ret_value
+                                    elif(ctx.OP.text == '+='):
+                                        value = var_value + ret_value
+                                    elif(ctx.OP.text == '*='):
+                                        value = var_value * ret_value
+                                    elif(ctx.OP.text == '/='):
+                                        value = var_value / ret_value
                                 if(ret_type == Type.INT):
                                     value = floor(value)
+
             if ctx.array():
-                if literal != None:
+                if literal != None and index != None:
                     literal[index] = value
-                self.ids_defined[name] = {'tyype': var_type, 'value': self.ids_defined[name].get('value'), 'cte': cte, 'id': var_info.get('id'), 'literal': literal}
+                self.ids_defined[name] = {'tyype': var_type, 'index': self.ids_defined[name].get('index'), 'cte': cte, 'id': var_info.get('id'), 'literal': literal}
             else:
                 self.ids_defined[name] = {'tyype': var_type, 'value': value, 'cte': cte, 'id': var_info.get('id')}
 
@@ -375,14 +385,14 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         elif(ctx.array()):
             ret_arr = self.visit(ctx.array())
             arr = self.ids_defined.get(ret_arr.get('name'))
-            
-            # if(arr == None):
-            if(ret_arr.get('ret_err') == Type.ERROR or arr == None):
-                # token = ctx.array().identifier().IDENTIFIER().getPayload()
-                # print('ERROR: undefined array \''+ctx.array().identifier().getText()+'\' in line ' + str(token.line) + ' and column ' +str(token.column))
+            index = ret_arr.get('index') # index do array
+            literal = arr.get('literal')
+            if(ret_arr.get('ret_err') == Type.ERROR or arr == None):    
                 return {'tyype': Type.ERROR, 'value': None}
+            elif(literal != None and index < arr.get('index')):
+                return {'tyype': arr.get('tyype'), 'value': literal[index]}
             else:
-                return {'tyype': arr.get('tyype'), 'value': arr.get('value')}
+                return {'tyype': arr.get('tyype'), 'value': None}
 
         elif(ctx.expression(1)):
             # print("3 filhos") 
@@ -411,7 +421,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
             if((ret_expr1 == (Type.FLOAT or Type.INT) and ret_expr2 == Type.STRING) and (ret_expr1 == Type.STRING  and ret_expr2 == (Type.FLOAT or Type.INT))):
                 # print("ERRO: tipos incompativeis")
-                return {'tyype': None,'value': Type.ERROR}
+                return {'tyype': Type.ERROR,'value': None}
             elif((ret_expr1 == Type.FLOAT and ret_expr2 == Type.INT) or (ret_expr1 == Type.INT and ret_expr2 == Type.FLOAT)):
                 if(op_type == '*' or op_type == '/'):
                     ret_tyype = Type.FLOAT
@@ -525,10 +535,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             tyype = Type.ERROR
 
         if(ret_expr == Type.ERROR):
-            return {'name': name, 'value': None, 'ret_err': Type.ERROR}
+            return {'name': name, 'index': None, 'ret_err': Type.ERROR}
         elif(ret_expr == Type.VOID):
             print('ERROR: trying to assign \'void\' expression to variable \'' + name + '\'in line '+ str(token.line)+ ' and column ' + str(token.column))
-            return {'name': name, 'value': None, 'ret_err': Type.VOID}
+            return {'name': name, 'index': None, 'ret_err': Type.VOID}
         else:
             if(index_value != None):
                 if(index_value < 0):
@@ -537,8 +547,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 elif(ret_type != Type.INT):
                     print('ERROR: array expression must be an integer, but it is ' + ret_type + ' in line '+ str(token.line)+' and column ' + str(token.column))
                     tyype = Type.ERROR
-            
-            return {'name': name, 'value': index_value, 'ret_err': tyype}
+            # print("Returning array", name, "index", index_value)
+            return {'name': name, 'index': index_value, 'ret_err': tyype}
 
 
     # Visit a parse tree produced by GrammarParser#array_literal.
