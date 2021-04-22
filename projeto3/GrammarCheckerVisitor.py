@@ -5,6 +5,22 @@ if __name__ is not None and "." in __name__:
     from .GrammarParser import GrammarParser
 else:
     from GrammarParser import GrammarParser
+
+
+def float_to_hex(f):
+    float_hex = hex(struct.unpack('<Q', struct.pack('<d', f))[0])
+    if (int(float_hex[10],16) % 2 != 0):
+        if (float_hex[10] == 'f'):
+            float_hex = float(math.ceil(f))
+        else:
+            float_hex = float_hex[:10] + hex(int(float_hex[10],16) + 1)[2] + "0000000"
+
+    else: 
+        float_hex = float_hex[:11] + "0000000"
+    return float_hex
+
+
+
 class Type:
     VOID = "void"
     INT = "int"
@@ -23,6 +39,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     count = 0
     global_variable = False
     constant = True
+    output = open("output.ll", "w")
     
     # Visit a parse tree produced by GrammarParser#fiile.
     def visitFiile(self, ctx:GrammarParser.FiileContext):
@@ -198,6 +215,9 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                             if(tyype == Type.INT and Type.FLOAT in ret_arr_literal_type):
                                 index = ret_arr_literal_type.index(Type.FLOAT)
                                 print('WARNING: possible loss of information initializing '+ Type.FLOAT +' expression to '+tyype+ ' array \''+ array_name +'\' at index ' + str(index) + ' of array literal in line '+ str(token.line) +' and column ' + str(token.column))
+                    if self.global_variable:
+                        pass
+                    
                     if(index != None and self.constant and not self.global_variable):
                         self.ids_defined[name] = {
                             'tyype': tyype,
@@ -234,8 +254,13 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         # print("Continuando após o erro")
                         return
                     else:
+                        hold = ""
+                        if self.global_variable:
+                            hold = "@" + name + " = " + llvm_type(tyype)) + " "
                         if(value != None and not self.global_variable and self.constant):
-                            if(tyype == Type.INT and not isinstance(value, str) and value != None):
+                            
+                            if(tyype == Type.INT and not isinstance(value, str)):
+                                val = str(value)
                                 self.ids_defined[name] = {
                                     'tyype': tyype,
                                     'value': floor(value),
@@ -243,12 +268,15 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                                     'id': self.stack_statement[-1]
                                     }
                             else:
+                                val = str(float_to_hex(value))
                                 self.ids_defined[name] = {
                                     'tyype': tyype,
                                     'value': value,
                                     'cte': True,
                                     'id': self.stack_statement[-1]
                                     }
+
+                            self.output.write(hold + val)
 
                             if(ret_type != tyype):
 
