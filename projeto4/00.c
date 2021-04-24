@@ -1,5 +1,5 @@
-float glob1 = 4.9;
-int main () {
-	float g = 4;
-	float h = glob1 + g;
+int half (int x) {
+	float a = 1.0;
+	a = x - 1.0;
+	return x / 2;
 }
