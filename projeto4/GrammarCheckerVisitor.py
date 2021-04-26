@@ -52,7 +52,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     inside_what_function = ""
     next_ir_register = 0
     output = open("output.ll", "w")
-    output_text = ""
     temp_text = ""
     global_variable = False
 
@@ -60,10 +59,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
     def visitFiile(self, ctx:GrammarParser.FiileContext):
         if ctx.variable_definition():
             self.global_variable = True
-            # print("global variable")
             for i in range(len(ctx.variable_definition())):
                 self.temp_text = ""
-                # self.output_text = ""
                 self.visit(ctx.variable_definition(i))
             self.global_variable = False
         if ctx.function_definition():
@@ -72,7 +69,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 self.loaded_var = {}
                 self.expr_loaded_var = {}
                 self.temp_text = ""
-                # self.output_text = ""
                 self.visit(ctx.function_definition(i))
         return
 
@@ -88,7 +84,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
         cte_value = None
         ir_register = None
-        # self.output_text = "define " + llvm_type(tyype) + " @" + name + "("
         self.output.write("define " + llvm_type(tyype) + " @" + name + "(")
         body_text = ""
         if len(params) == 1:
@@ -96,25 +91,18 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             self.output.write(param_type + " %0) {\n\t")
             self.output.write("%"+params_name[0]+" = alloca " + param_type + ", align 4\n\t")
             self.output.write("store " + param_type + " %0, " + param_type + "* " + "%" + params_name[0] +", align 4\n\t")
-            # self.output_text += param_type + " %0) {\n\t"
-            # self.output_text += "%"+params_name[0]+" = alloca " + param_type + ", align 4\n\t"
-            # self.output_text += "store " + param_type + " %0, " + param_type + "* " + "%" + params_name[0] +", align 4\n\t"
 
         else:
 
             #Criando a linha dos parametros
             for i in range(len(params)):
-                # self.output_text += llvm_type(params[i]) + " %" + str(i)
                 self.output.write(llvm_type(params[i]) + " %" + str(i))
                 if(i + 1 != len(params)): 
-                    # self.output_text += ", "
                     self.output.write(", ")
                 
                 body_text += "%"+params_name[i]+" = alloca " + llvm_type(params[i]) + ", align 4\n\t"
                 body_text += "store " + llvm_type(params[i]) + " %" + str(i) + ", " + llvm_type(params[i]) + "* " + "%" + params_name[i] +", align 4\n\t"
 
-            # self.output_text += ") {\n\t"
-            # self.output_text += body_text
             self.output.write(") {\n\t")
             self.output.write(body_text)
 
@@ -128,8 +116,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
         self.visit(ctx.body())
 
         self.output.write("\n}\n\n")
-        # self.output_text += "\n}\n\n"
-        # self.output.write(self.output_text)
         return
 
 
@@ -153,13 +139,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     if self.expr_loaded_var.get(ir_register) == None and ctx.expression().function_call() == None:
                         self.output.write("%" + str(self.next_ir_register) + " = ")
                         self.output.write("load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t")
-                        # self.output_text += "%" + str(self.next_ir_register) + " = "
-                        # self.output_text += "load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t"
                         ir_register = "%" + str(self.next_ir_register)
                     elif ctx.expression().function_call():
                         ir_register = "%" + str(reg)               
                     self.output.write("ret " + llvm_type(function_type) + " " + ir_register)
-                    # self.output_text += "ret " + llvm_type(function_type) + " " + ir_register
 
                 else:
                     val = ""
@@ -168,7 +151,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     else:
                         val = str(int(cte_value))
                     self.output.write("ret " + val)
-                    # self.output_text += "ret " + val
 
                 if ctx.expression().function_call():
                     self.next_ir_register += 1
@@ -185,10 +167,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 err("ERROR: trying to return void expression from function '" + self.inside_what_function + "' in line " + str(token.line) + " and column " + str(token.column) + "\n")
                 exit(-1)
             else:
-                # self.output_text += "ret " + llvm_type(function_type)
                 self.output.write("ret " + llvm_type(function_type))
-            # self.output_text += "\n"
-            # self.output.write("\n")
         elif ctx.expression() != None:
             tyype, cte_value, ir_register = self.visit(ctx.expression())
             if ctx.expression().function_call() != None:
@@ -243,20 +222,15 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             
             if self.global_variable:
                 self.output.write("@" + name + " = global " + llvm_type(tyype) + " ")
-                # self.output_text += "@" + name + " = global " + llvm_type(tyype) + " "
                 
             else:
                 self.output.write("%" + name + " = alloca " + llvm_type(tyype) + ", align 4\n\t")
-                # self.output_text += "%" + name + " = alloca " + llvm_type(tyype) + ", align 4\n\t"
             
             if ctx.expression(i) != None:
                 
 
                 expr_type, cte_value, ir_register = self.visit(ctx.expression(i))
 
-
-
-                # print("Ret expr var \"", name, "\" type", expr_type, "value", cte_value, "ir register", ir_register)
 
                 if expr_type == Type.VOID:
                     err("ERROR: trying to assign void expression to variable '" + name + "' in line " + str(token.line) + " and column " + str(token.column) + "\n")
@@ -266,12 +240,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 
                 val = ""
                 
-                # print("IR register in definition:", ir_register)
 
                 if ir_register == None:
 
                     if cte_value != None:
-                        if expr_type == Type.FLOAT:
+                        if expr_type == Type.FLOAT and tyype != Type.INT:
                             val = float_to_hex(cte_value)
                         else:
                             val = str(int(cte_value))
@@ -290,7 +263,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
                 if val != None and not self.global_variable:
                     self.output.write("store " + llvm_type(expr_type) + " " + val + ", " +  llvm_type(expr_type) + "* %" + name + ", align 4\n\t")
-                    # self.output_text += "store " + llvm_type(expr_type) + " " + val + ", " +  llvm_type(expr_type) + "* %" + name + ", align 4\n\t"
                     self.expr_loaded_var = {}
                 elif val != None and self.global_variable:
                     self.output.write(val + "\n")
@@ -367,33 +339,28 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 reg = "%" + str(self.next_ir_register)
                 self.output.write("%" + str(self.next_ir_register) + " = ")
                 self.output.write("load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t")
-                # self.output_text += "%" + str(self.next_ir_register) + " = "
-                # self.output_text += "load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t"
-                # ir_register = reg
                 self.next_ir_register += 1
             else:
                 ir_register = self.loaded_var.get(ir_register)
             self.output.write("%" + str(self.next_ir_register) + " = ")
-            # self.output_text += "%" + str(self.next_ir_register) + " = "
             if cte_value != None:
                 if op == '++':
                     self.output.write("add " + llvm_type(tyype) + " " + reg + ", 1\n\t" )
-                    # self.output_text += "add " + llvm_type(tyype) + " " + reg + ", 1\n\t" 
+    
                     cte_value += 1
                 elif op == '--':
                     self.output.write("sub " + llvm_type(tyype) + " " + reg + ", 1\n\t" )
-                    # self.output_text += "sub " + llvm_type(tyype) + " " + reg + ", 1\n\t"
+    
                     cte_value -= 1
             else:
                 cte_value = None
                 if op == '++':
                     self.output.write("add " + llvm_type(tyype) + " " + reg + ", 1\n\t" )
-                    # self.output_text += "add " + llvm_type(tyype) + " " + reg + ", 1\n\t" 
+    
                 elif op == '--':
                     self.output.write("sub " + llvm_type(tyype) + " " + reg + ", 1\n\t" )
-                    # self.output_text += "sub " + llvm_type(tyype) + " " + reg + ", 1\n\t"
+    
             self.output.write("store " + llvm_type(tyype) + " %" + str(self.next_ir_register) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t")
-            # self.output_text += "store " + llvm_type(tyype) + " %" + str(self.next_ir_register) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t"
             self.next_ir_register += 1
 
         else:
@@ -406,8 +373,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     ir_register = "%" + str(self.next_ir_register)
                     self.output.write("%" + str(self.next_ir_register) + " = ")
                     self.output.write("load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* %" + name + ", align 4\n\t")
-                    # self.output_text += "%" + str(self.next_ir_register) + " = "
-                    # self.output_text += "load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t"
+    
+    
                     # ir_register = reg
                     self.next_ir_register += 1
                 else:
@@ -437,22 +404,22 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 if cte_value != None:
                 
                     ir_op = "%" + str(self.next_ir_register)
-                    # self.output_text += ir_op + " = "
+    
                     self.output.write(ir_op + " = ")
                     if op == '+=':
-                        # self.output_text += "add "
+        
                         self.output.write("add ")
                         cte_value += expr_cte_value
                     elif op == '-=':
-                        # self.output_text += "sub "
+        
                         self.output.write("sub ")
                         cte_value -= expr_cte_value
                     elif op == '*=':
-                        # self.output_text += "mul "
+        
                         self.output.write("mul ")
                         cte_value *= expr_cte_value
                     elif op == '/=':
-                        # self.output_text += "sdiv "
+        
                         self.output.write("sdiv ")
                         cte_value /= expr_cte_value
                     val = ""
@@ -465,25 +432,21 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                         ir_type = llvm_type(Type.INT)
                     self.output.write(ir_type+" "+ir_register + ", " + val + "\n\t")
                     self.output.write("store "+ ir_type + " " + ir_op + ", " + ir_type + "* " + "%" + name + ", align 4\n\t")
-                    # self.output_text += ir_type+" "+ir_register + ", " + val + "\n\t"
-                    # self.output_text += "store "+ ir_type + " " + ir_op + ", " + ir_type + "* " + "%" + name + ", align 4\n\t"
+    
+    
                     self.next_ir_register += 1
                     self.expr_loaded_var = {}
                 else:
                     ir_op = "%" + str(self.next_ir_register)
-                    # self.output_text += ir_op + " = "
+    
                     self.output.write(ir_op + " = ")
-                    if op == '+=':
-                        # self.output_text += "add "
+                    if op == '+=':        
                         self.output.write("add ")
-                    elif op == '-=':
-                        # self.output_text += "sub "
+                    elif op == '-=':        
                         self.output.write("sub ")
                     elif op == '*=':
-                        # self.output_text += "mul "
                         self.output.write("mul ")
                     elif op == '/=':
-                        # self.output_text += "sdiv "
                         self.output.write("sdiv ")
                     ir_type = ""
                     if tyype == Type.FLOAT:
@@ -491,9 +454,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     else:
                         ir_type = llvm_type(Type.INT)
 
-                    # self.output_text += ir_type+" "+self.loaded_var.get(ir_register) + ", " + expr_ir_register + "\n\t"
-                    self.output.write(ir_type+" "+ ir_register + ", " + expr_ir_register + "\n\t")
-                    # self.output_text += "store "+ ir_type + " " + ir_op + ", " + ir_type + "* " + "%" + name + ", align 4\n\t"
+    
+                    self.output.write(ir_type+" "+ ir_register + ", " + expr_ir_register + "\n\t")    
                     self.output.write("store "+ ir_type + " " + ir_op + ", " + ir_type + "* " + "%" + name + ", align 4\n\t")
                     self.next_ir_register += 1
                     self.expr_loaded_var = {}
@@ -571,8 +533,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     exit(-1)
                 
                 if self.expr_loaded_var.get(ir_register) == None and ir_register != None and cte_value == None:
-                    # self.output_text += "%" + str(self.next_ir_register) + " = "
-                    # self.output_text += "load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t"
+    
+    
                     self.output.write("%" + str(self.next_ir_register) + " = ")
                     self.output.write("load " + llvm_type(tyype) + ", " + llvm_type(tyype) + "* " + ir_register + ", align 4\n\t")
                     self.expr_loaded_var[ir_register] = "%" + str(self.next_ir_register)
@@ -582,7 +544,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     op_type = ""
                     if(tyype == Type.FLOAT):
                         op_type = "f"
-                    # self.output_text += "%" + str(self.next_ir_register) + " = " + op_type + "sub " + llvm_type(tyype) + " 0, " + ir_register +"\n\t"
+    
                     self.output.write("%" + str(self.next_ir_register) + " = " + op_type + "sub " + llvm_type(tyype) + " 0, " + ir_register +"\n\t")
                     ir_register = "%" + str(self.next_ir_register)
                     self.next_ir_register += 1
@@ -611,7 +573,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             left_type, left_cte_value, left_ir_register = self.visit(ctx.expression(0))
 
             if ctx.expression(0).function_call() != None:
-                # print("Salvando chamada de funcao", left_ir_register)
                 self.output.write("%" + str(self.next_ir_register) + " = ")
                 self.output.write(self.temp_text)
                 self.temp_text = ""
@@ -621,7 +582,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             right_type, right_cte_value, right_ir_register = self.visit(ctx.expression(1))
 
             if ctx.expression(1).function_call() != None:
-                # print("Salvando chamada de funcao", right_ir_register)
                 self.output.write("%" + str(self.next_ir_register) + " = ")
                 self.output.write(self.temp_text)
                 self.temp_text = ""
@@ -656,20 +616,15 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 
                 if left_cte_value == None or left_global_var:
                     if self.expr_loaded_var.get(left_ir_register) != None:
-                        # print("Getting loaded var:",self.expr_loaded_var.get(left_ir_register))
                         left_load_ir = self.expr_loaded_var.get(left_ir_register)
                     else:
-                        # print("Salvando var", left_ir_register)
-                        self.expr_loaded_var[left_ir_register] = "%" + str(self.next_ir_register)
-                        # self.output_text += "%" + str(self.next_ir_register) + " = "
-                        # self.output_text += "load " + llvm_type(left_type) + ", " + llvm_type(left_type) + "* " + left_ir_register + ", align 4\n\t"
+                        self.expr_loaded_var[left_ir_register] = "%" + str(self.next_ir_register)        
                         self.output.write("%" + str(self.next_ir_register) + " = ")
                         self.output.write("load " + llvm_type(left_type) + ", " + llvm_type(left_type) + "* " + left_ir_register + ", align 4\n\t")
                         if left_write_output:
                             left_load_ir = "%" + str(self.next_ir_register)
                             self.next_ir_register += 1
-                            if left_type == Type.INT and right_type == Type.FLOAT:
-                                # self.output_text += "%" + str(self.next_ir_register) + " = sitofp i32 " + left_load_ir + " to float\n\t"
+                            if left_type == Type.INT and right_type == Type.FLOAT:                
                                 self.output.write("%" + str(self.next_ir_register) + " = sitofp i32 " + left_load_ir + " to float\n\t")
                                 self.next_ir_register += 1
         
@@ -684,22 +639,15 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
 
                 if right_cte_value == None or right_global_var:
                     if self.expr_loaded_var.get(right_ir_register) != None:
-                        # right_ir_register = expr_loaded_var.get(right_ir_register)
-                        # print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
                         right_load_ir = self.expr_loaded_var.get(right_ir_register)
                     else:
-
-                        # print("Salvando var", right_ir_register)
-                        self.expr_loaded_var[right_ir_register] = "%" + str(self.next_ir_register)
-                        # self.output_text += "%" + str(self.next_ir_register) + " = "
-                        # self.output_text += "load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t"
+                        self.expr_loaded_var[right_ir_register] = "%" + str(self.next_ir_register)      
                         self.output.write("%" + str(self.next_ir_register) + " = ")
                         self.output.write("load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t")
                         if right_write_output:
                             right_load_ir = "%" + str(self.next_ir_register)
                             self.next_ir_register += 1
-                            if left_type == Type.FLOAT and right_type == Type.INT:
-                                # self.output_text += "%" + str(self.next_ir_register) + " = sitofp i32 " + right_load_ir + " to float\n\t"
+                            if left_type == Type.FLOAT and right_type == Type.INT:                
                                 self.output.write("%" + str(self.next_ir_register) + " = sitofp i32 " + right_load_ir + " to float\n\t")
                                 self.next_ir_register += 1
                 elif right_cte_value != None:
@@ -713,13 +661,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             elif right_ir_register == left_ir_register:
                 if left_cte_value == None or left_global_var:
                     if self.expr_loaded_var.get(right_ir_register) != None:
-                        # right_ir_register = expr_loaded_var.get(right_ir_register)
-                        # print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
                         left_load_ir = right_load_ir = self.expr_loaded_var.get(right_ir_register)
                     else:
-                        # print("Salvando var", right_ir_register)
-                        # self.output_text += "%" + str(self.next_ir_register) + " = "
-                        # self.output_text += "load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t"
                         self.output.write("%" + str(self.next_ir_register) + " = ")
                         self.output.write("load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t")
                         left_load_ir = right_load_ir = "%" + str(self.next_ir_register)
@@ -737,7 +680,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     #guardar variavel
                     var_name = "%" + str(self.next_ir_register)
                     self.expr_loaded_var[var_name] = var_name
-                    # self.output_text += var_name + " = "
+    
                     self.output.write(var_name + " = ")
                     ir_register = var_name
                     self.next_ir_register += 1
@@ -751,54 +694,41 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     if text == '*':
                         cte_value = left_cte_value * right_cte_value
                         if write_output:
-                            # self.output_text += op_type+"mul " + llvm_type(tyype) + " "
+            
                             self.output.write(op_type+"mul " + llvm_type(tyype) + " ")
                     elif text == '/':
                         cte_value = left_cte_value / right_cte_value
                         if write_output:
                             if op_type == "f":
-                                # self.output_text += op_type+"div " + llvm_type(tyype) + " "
                                 self.output.write(op_type+"div " + llvm_type(tyype) + " ")
                             else:
-                                # self.output_text += "sdiv " + llvm_type(tyype) + " "
                                 self.output.write("sdiv " + llvm_type(tyype) + " ")
 
                     elif text == '+':
                         cte_value = left_cte_value + right_cte_value
                         if write_output:
-                            # self.output_text += op_type+"add " + llvm_type(tyype) + " "
                             self.output.write(op_type+"add " + llvm_type(tyype) + " ")
                     elif text == '-':
                         cte_value = left_cte_value - right_cte_value
                         if write_output:
-                            # self.output_text += op_type+"sub " + llvm_type(tyype) + " "
                             self.output.write(op_type+"sub " + llvm_type(tyype) + " ")
                     if write_output:
-                        # self.output_text += left_load_ir + ", " + right_load_ir+"\n\t"
                         self.output.write(left_load_ir + ", " + right_load_ir+"\n\t")               
                 else:
                     if write_output:
                         if text == '*':
-                            # self.output_text += op_type+"mul " + llvm_type(tyype) + " "
                             self.output.write(op_type+"mul " + llvm_type(tyype) + " ")
                         elif text == '/':
                             if op_type == "f":
-                                # self.output_text += op_type+"div " + llvm_type(tyype) + " "
                                 self.output.write(op_type+"div " + llvm_type(tyype) + " ")
                             else:
-                                # self.output_text += "sdiv " + llvm_type(tyype) + " "
                                 self.output.write("sdiv " + llvm_type(tyype) + " ")
                         elif text == '+':
-                            # self.output_text += op_type+"add " + llvm_type(tyype) + " "
                             self.output.write(op_type+"add " + llvm_type(tyype) + " ")
                         elif text == '-':
-                            # self.output_text += op_type+"sub " + llvm_type(tyype) + " "
                             self.output.write(op_type+"sub " + llvm_type(tyype) + " ")
-                        # self.output_text += left_load_ir + ", " + right_load_ir+"\n\t"
                         self.output.write(left_load_ir + ", " + right_load_ir+"\n\t")               
-                    
                     cte_value = None
-
             else:
                 tyype = Type.INT
                 if left_cte_value != None and right_cte_value != None:
@@ -874,9 +804,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             err("ERROR: undefined function '" + name + "' in line " + str(token.line) + " and column " + str(token.column) + "\n")
             exit(-1)
         
-        # self.loaded_var[ir_register] = 
-        # self.output.write("call " + llvm_type(tyype) + " @" + name + "(")
-        # out_text = ""
         out_text = "call " + llvm_type(tyype) + " @" + name + "("
         for i in range(len(ctx.expression())):
             arg_type, arg_cte_value, arg_ir_register = self.visit(ctx.expression(i))
@@ -890,7 +817,6 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 elif(arg_type == Type.INT):
                     val = str(int(arg_cte_value))
                 out_text += llvm_type(arg_type) + " " + val
-            # self.output.write(llvm_type(arg_type) + " " + val)
 
             if i + 1 != len(ctx.expression()):
                 out_text += ", "
@@ -901,10 +827,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     exit(-1)
                 elif arg_type == Type.FLOAT and args[i] == Type.INT:
                     err("WARNING: possible loss of information converting float expression to int expression in parameter " + str(i) + " of function '" + name + "' in line " + str(token.line) + " and column " + str(token.column) + "\n")
-        # self.output.write("%" + str(self.next_ir_register) + " = " + out_text+")\n\t")
         self.temp_text = out_text+")\n\t"
-        # print("temp text", self.temp_text)
-        # self.output_text += "%" + str(self.next_ir_register) + " = " + out_text+")\n\t"
         return tyype, cte_value, ir_register
 
 
