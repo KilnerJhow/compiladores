@@ -7,10 +7,10 @@ define i32 @half(i32 %0) {
 }
 
 define i32 @scalar(i32 %0, i32 %1) {
-	%a = alloca int, align 4
-	store int %0, int* %a, align 4
-	%b = alloca int, align 4
-	store int %1, int* %b, align 4
+	%a = alloca i32, align 4
+	store i32 %0, i32* %a, align 4
+	%b = alloca i32, align 4
+	store i32 %1, i32* %b, align 4
 	%3 = load i32, i32* %a, align 4
 	%4 = load i32, i32* %b, align 4
 	%5 = sub i32 0, %b

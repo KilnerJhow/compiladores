@@ -110,8 +110,8 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     # self.output_text += ", "
                     self.output.write(", ")
                 
-                body_text += "%"+params_name[i]+" = alloca " + params[i] + ", align 4\n\t"
-                body_text += "store " + params[i] + " %" + str(i) + ", " + params[i] + "* " + "%" + params_name[i] +", align 4\n\t"
+                body_text += "%"+params_name[i]+" = alloca " + llvm_type(params[i]) + ", align 4\n\t"
+                body_text += "store " + llvm_type(params[i]) + " %" + str(i) + ", " + llvm_type(params[i]) + "* " + "%" + params_name[i] +", align 4\n\t"
 
             # self.output_text += ") {\n\t"
             # self.output_text += body_text
@@ -266,7 +266,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 
                 val = ""
                 
-                print("IR register in definition:", ir_register)
+                # print("IR register in definition:", ir_register)
 
                 if ir_register == None:
 
@@ -611,7 +611,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             left_type, left_cte_value, left_ir_register = self.visit(ctx.expression(0))
 
             if ctx.expression(0).function_call() != None:
-                print("Salvando chamada de funcao", left_ir_register)
+                # print("Salvando chamada de funcao", left_ir_register)
                 self.output.write("%" + str(self.next_ir_register) + " = ")
                 self.output.write(self.temp_text)
                 self.temp_text = ""
@@ -621,7 +621,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
             right_type, right_cte_value, right_ir_register = self.visit(ctx.expression(1))
 
             if ctx.expression(1).function_call() != None:
-                print("Salvando chamada de funcao", right_ir_register)
+                # print("Salvando chamada de funcao", right_ir_register)
                 self.output.write("%" + str(self.next_ir_register) + " = ")
                 self.output.write(self.temp_text)
                 self.temp_text = ""
@@ -656,10 +656,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 
                 if left_cte_value == None or left_global_var:
                     if self.expr_loaded_var.get(left_ir_register) != None:
-                        print("Getting loaded var:",self.expr_loaded_var.get(left_ir_register))
+                        # print("Getting loaded var:",self.expr_loaded_var.get(left_ir_register))
                         left_load_ir = self.expr_loaded_var.get(left_ir_register)
                     else:
-                        print("Salvando var", left_ir_register)
+                        # print("Salvando var", left_ir_register)
                         self.expr_loaded_var[left_ir_register] = "%" + str(self.next_ir_register)
                         # self.output_text += "%" + str(self.next_ir_register) + " = "
                         # self.output_text += "load " + llvm_type(left_type) + ", " + llvm_type(left_type) + "* " + left_ir_register + ", align 4\n\t"
@@ -685,11 +685,11 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 if right_cte_value == None or right_global_var:
                     if self.expr_loaded_var.get(right_ir_register) != None:
                         # right_ir_register = expr_loaded_var.get(right_ir_register)
-                        print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
+                        # print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
                         right_load_ir = self.expr_loaded_var.get(right_ir_register)
                     else:
 
-                        print("Salvando var", right_ir_register)
+                        # print("Salvando var", right_ir_register)
                         self.expr_loaded_var[right_ir_register] = "%" + str(self.next_ir_register)
                         # self.output_text += "%" + str(self.next_ir_register) + " = "
                         # self.output_text += "load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t"
@@ -714,10 +714,10 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                 if left_cte_value == None or left_global_var:
                     if self.expr_loaded_var.get(right_ir_register) != None:
                         # right_ir_register = expr_loaded_var.get(right_ir_register)
-                        print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
+                        # print("Getting loaded var:",self.expr_loaded_var.get(right_ir_register))
                         left_load_ir = right_load_ir = self.expr_loaded_var.get(right_ir_register)
                     else:
-                        print("Salvando var", right_ir_register)
+                        # print("Salvando var", right_ir_register)
                         # self.output_text += "%" + str(self.next_ir_register) + " = "
                         # self.output_text += "load " + llvm_type(right_type) + ", " + llvm_type(right_type) + "* " + right_ir_register + ", align 4\n\t"
                         self.output.write("%" + str(self.next_ir_register) + " = ")
@@ -903,7 +903,7 @@ class GrammarCheckerVisitor(ParseTreeVisitor):
                     err("WARNING: possible loss of information converting float expression to int expression in parameter " + str(i) + " of function '" + name + "' in line " + str(token.line) + " and column " + str(token.column) + "\n")
         # self.output.write("%" + str(self.next_ir_register) + " = " + out_text+")\n\t")
         self.temp_text = out_text+")\n\t"
-        print("temp text", self.temp_text)
+        # print("temp text", self.temp_text)
         # self.output_text += "%" + str(self.next_ir_register) + " = " + out_text+")\n\t"
         return tyype, cte_value, ir_register
 
